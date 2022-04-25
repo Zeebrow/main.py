@@ -1,0 +1,11 @@
+venv
+venv-pytest
+postups/*/
+userdatas/*userdata*
+**.egg*
+
+# personal preference
+tmp
+*.json
+**.tar.gz
+**.swp

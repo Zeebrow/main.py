@@ -1,0 +1,107 @@
+# alias incomplete_di='aws ec2 describe-instances --filter 'Name=state-reason-code,Values='
+
+export WORKDIR="$PWD/$BASH_SOURCE"
+
+function dsg () {
+  local SG
+  SG=${1:-quickhost}
+  printf "deleting security group '$SG'..."
+  $(aws ec2 delete-security-group --group-name "$SG")
+  if [ "$?" -eq 0 ]; then
+    echo Done
+  fi
+}
+
+function instids () {
+  sgname=${1:-quickhost}
+  echo "instances tagged with name '$sgname':"
+  aws ec2 describe-instances \
+    --filter 'Name=instance-state-name,Values=running' \
+    --filter "Name=instance.group-name,Values=$sgname" \
+    --query 'Reservations[].Instances[].{id:InstanceId}' \
+    --output text
+}
+
+function terminsts () {
+  [ -z "$1" ] && echo "usage terminsts name1 [name2 [name3]]" && return 1
+  #while IFS=
+  instances=($(aws ec2 describe-instances \
+    --filter 'Name=instance-state-name,Values=running' \
+    --filter "Name=instance.group-name,Values=$1" \
+    --query 'Reservations[].Instances[].{id:InstanceId}' \
+    --output text))
+  aws ec2 terminate-instances --instance-id ${instances[@]}
+}
+
+function listem() {
+  [ -z "$1" ] && echo "usage delinsts secrutiy-group-name" && return 1
+  aws ec2 describe-instances \
+      --filter 'Name=instance-state-name,Values=running' \
+      --filter "Name=instance.group-name,Values=$1" \
+      --query 'Reservations[].Instances[].{id:InstanceId}' \
+      --output text
+}
+
+function getssh () {
+  sgname=${1:-quickhost}
+# TODO new one lol. "its an example"
+  local keyname=ec2-172-16-1.pem
+# user ubuntu for ubuntu..
+  local host_user=ec2-user
+  echo "ssh commands for '$sgname':"
+  ips=($(aws ec2 describe-instances \
+      --filter 'Name=instance-state-name,Values=running' \
+      --filter "Name=instance.group-name,Values=$sgname" \
+      --query 'Reservations[].Instances[].{id:PublicIpAddress}' \
+      --output text))
+  for i in "${ips[@]}"; do
+    printf "ssh -i %s/.ssh/%s %s@%s\n" "$HOME" "$keyname" "$host_user" "$i"
+  done
+}
+
+function getapps () {
+  local tagkey=${1:-app}
+  # belongs in python
+  #tagval=${1:-quickhost}
+  #filter_tag="--filter 'Name=tag:${tagkey},Values=${tagval}'"
+  #filter_all="--filter Name=tag-key,Values=$tagkey"
+  echo "Getting hosts with tag app: $tagval"
+
+  aws ec2 describe-instances  \
+    --filter "Name=tag-key,Values=app" \
+    --filter 'Name=instance-state-name,Values=running'  \
+    --query 'Reservations[].Instances[].Tags[]'  \
+    --output text
+
+}
+
+# figure this one out and build into make_instances.py
+function get_latest_ubuntu () {
+aws ssm get-parameters --names \
+  /aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id \
+  --query 'Parameters[0].Value' --output text
+}
+
+function addfren () {
+  [ -z "$1" -o -z "$2" ] && echo "usage addfren app_name fren_ip" && return 1
+  host=$1
+  fren_ip=$2
+  aws ec2 authorize-security-group-ingress --group-name "$1"  --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges="[{CidrIp=$2/32}]"
+}
+
+function blog () {
+  local blog_dir="${WORKDIR%/*}/blog"
+  vim "$blog_dir/blog-$(date -I).md"
+}
+
+# ordered from most to least used
+#export dsg
+#export terminsts
+#export getssh
+#export getapps
+#export listem
+#export instids
+#export get_latest_ubuntu
+#export blog
+
+#aws ec2 describe-instances --query 'Reservations[].Instances[].Tags[]'
