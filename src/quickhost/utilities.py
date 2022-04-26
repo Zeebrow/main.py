@@ -23,6 +23,6 @@ def get_my_public_ip() -> str:
     try:
         with urllib.request.urlopen("https://ipv4.icanhazip.com") as r:
             html = r.read()
-            return html.decode('utf-8').strip()
+            return html.decode('utf-8').strip() + "/32"
     except Exception:
         return input('Could not determine your public ip address (are you connected to the internet?). Enter it here (Ctrl^C to cancel): ')

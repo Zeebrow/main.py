@@ -1,1 +1,1 @@
-from .cli_params import parse_cli_params
+from .cli_params import parse_cli_params, AWSConfig
