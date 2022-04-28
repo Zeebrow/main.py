@@ -15,6 +15,7 @@ logger.addHandler(sh)
 
 def do_args():
     parser = argparse.ArgumentParser(description="make a bunch of ec2 servers, relatively quickly")
+    parser.add_argument("-f", "--config-file", required=False, default=SUPPRESS, help="Use an alternative to quickhost.conf for default configuration")
     subparsers = parser.add_subparsers()
     AWSConfig.parser_arguments(subparser=subparsers)
 

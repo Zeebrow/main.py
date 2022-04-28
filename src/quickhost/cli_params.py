@@ -127,7 +127,6 @@ class AWSConfig(ConfigBase):
     def parser_arguments(self, subparser: any) -> None:
         aws_subparser = subparser.add_parser('aws')
         aws_subparser.add_argument("-n", "--app-name", required=True, help="Name the group of hosts you're creating (remember, there is no state!)")
-        aws_subparser.add_argument("-f", "--config-file", required=False, default=SUPPRESS, help="Use an alternative to quickhost.conf for default configuration")
         aws_subparser.add_argument("-y", "--dry-run", required=False, action='store_true', help="prevents any resource creation when set")
         aws_subparser.add_argument("-c", "--host-count", required=False, default=1, help="number of hosts to create")
         aws_subparser.add_argument("-p", "--port", required=False, type=int, action='append', default=[22], help="add an open tcp port to security group, applied to all ips")

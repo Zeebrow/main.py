@@ -25,10 +25,9 @@ def test_load_config_cli_arg():
     cfg2 = Path('tests/data/another_test_aws_config.conf')
     app_name = 'test_load_config_cli_arg'
 
-    params = "--config-file tests/data/another_test_aws_config.conf -n test_load_config_cli_arg aws --port 30 --ip 1.2.3.4/24 --vpc-id vpc-overrides ".split()
+    params = "--config-file tests/data/another_test_aws_config.conf aws -n test_load_config_cli_arg --port 30 --ip 1.2.3.4/24 --vpc-id vpc-overrides ".split()
     parser = ArgumentParser('test_load')
     subparsers = parser.add_subparsers()
-    parser.add_argument("-n", "--app-name", required=True)
     parser.add_argument("-f", "--config-file", required=False, default=SUPPRESS)
     
     AWSConfig.parser_arguments(subparser=subparsers)
@@ -48,13 +47,12 @@ def test_load_config_cli_arg():
 
 def test_load_aws_config_cli_overrides_file():
     should_pass = [
-        "-n asdf aws --port 22 --port 22 --ip 1.2.3.4/24 ".split(),
+        "aws -n asdf --port 22 --port 22 --ip 1.2.3.4/24 ".split(),
     ]
     # @@@ fixture, or what?
     for sp in should_pass:
         parser = ArgumentParser('test_load')
         subparsers = parser.add_subparsers()
-        parser.add_argument("-n", "--app-name", required=True)
         parser.add_argument("-f", "--config-file", required=False, default=SUPPRESS)
         
         AWSConfig.parser_arguments(subparser=subparsers)
