@@ -8,8 +8,6 @@ from quickhost import AWSConfig
 def do_args():
     parser = argparse.ArgumentParser(description="make a bunch of ec2 servers, relatively quickly")
     subparsers = parser.add_subparsers()
-    parser.add_argument("-n", "--app-name", required=True, help="Name the group of hosts you're creating (remember, there is no state!)")
-    parser.add_argument("-f", "--config-file", required=False, default=argparse.SUPPRESS, help="Use an alternative to quickhost.conf for default configuration")
 
     AWSConfig.parser_arguments(subparser=subparsers)
 
