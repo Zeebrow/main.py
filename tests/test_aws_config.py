@@ -48,7 +48,6 @@ def test_load_config_cli_arg():
 
 def test_load_aws_config_cli_overrides_file():
     should_pass = [
-            # THIS MOST DEFINITELY SHOULD FAIL
         "-n asdf aws --port 22 --port 22 --ip 1.2.3.4/24 ".split(),
     ]
     # @@@ fixture, or what?
