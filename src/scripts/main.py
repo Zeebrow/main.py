@@ -2,6 +2,7 @@
 import json
 import argparse
 import sys
+from os import get_terminal_size
 import logging
 
 from quickhost import AWSConfig
@@ -15,7 +16,8 @@ logger.addHandler(sh)
 
 def do_args():
     parser = argparse.ArgumentParser(description="make a bunch of ec2 servers, relatively quickly")
-    parser.add_argument("-f", "--config-file", required=False, default=SUPPRESS, help="Use an alternative to quickhost.conf for default configuration")
+    parser.add_argument("-f", "--config-file", required=False, default=argparse.SUPPRESS, help="Use an alternative to quickhost.conf for default configuration")
+    parser.add_argument("--print-config", required=False, action='store_true', help="Print the config params to be used")
     subparsers = parser.add_subparsers()
     AWSConfig.parser_arguments(subparser=subparsers)
 
@@ -27,7 +29,6 @@ def do_args():
 
     return args
 
-
 if __name__ == "__main__":
     args = do_args()
     print(f"{args=}")
@@ -37,6 +38,8 @@ if __name__ == "__main__":
         _a = {'app_name': args.app_name, 'config_file': args.config_file}
         
     aws = AWSConfig(**_a)
-    print(aws.__dict__)
     aws.load_cli_args(args)
-    print(aws.__dict__)
+    if args.print_config:
+        aws.print_loaded_args()
+        exit(1)
+    aws.create()

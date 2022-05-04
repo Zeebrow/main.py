@@ -1,1 +1,2 @@
-from .cli_params import AWSConfig
+from .AWSConfig import AWSConfig
+#from .AWSApp import AWSApp
