@@ -3,22 +3,22 @@ from pathlib import Path
 from argparse import ArgumentParser, Namespace, SUPPRESS
 import logging
 
-from quickhost import AWSConfig
+from quickhost import AWSApp
 from fixtures.fixt_aws_cli import new_parser
 
 cfg_file = Path('tests/data/test_aws_config.conf').absolute()
 
 def test_load_fnf_raises():
     with pytest.raises(RuntimeError):
-        c = AWSConfig('test_load_aws_config_file', 'gobbldiegook')
+        c = AWSApp('test_load_aws_config_file', 'gobbldiegook')
 
 def test_load_aws_config_file():
-    c = AWSConfig('test_load_aws_config_file', cfg_file)
+    c = AWSApp('test_load_aws_config_file', cfg_file)
     assert c.subnet_id == 'subnet-abc123'
     assert c.vpc_id == 'vpc-_all'
 
 def test_app_config_overrides__all():
-    c = AWSConfig('test_app_config_overrides__all', cfg_file)
+    c = AWSApp('test_app_config_overrides__all', cfg_file)
     assert c.subnet_id != 'subnet-_all'
     assert c.vpc_id != 'vpc-_all'
 
@@ -41,7 +41,7 @@ def test_load_config_cli_arg(new_parser):
 
     parser = new_parser()
     args = parser.parse_args(cli_args)
-    c = AWSConfig(app_name=args.app_name, config_file=args.config_file)
+    c = AWSApp(app_name=args.app_name, config_file=args.config_file)
 
     assert c.subnet_id == 'subnet-asdf9876'
     assert c.vpc_id == 'vpc-asdf9876'
@@ -67,16 +67,32 @@ def test_load_aws_config_cli_overrides_file():
         subparsers = parser.add_subparsers()
         parser.add_argument("-f", "--config-file", required=False, default=SUPPRESS)
         
-        AWSConfig.parser_arguments(subparser=subparsers)
+        AWSApp.parser_arguments(subparser=subparsers)
         args = parser.parse_args(sp)
 
         _a = {'app_name':'test_load_aws_config_cli_overrides_file', 'config_file': cfg_file} if not 'config_file' in vars(args).keys() else {'app_name':'test_load_aws_config_cli_overrides_file', 'config_file': args.config_file}
 
-        c = AWSConfig(**_a)
-        print(c.__dict__)
+        c = AWSApp(**_a)
         assert c.subnet_id == 'subnet-9876'
         assert c.vpc_id == 'vpc-9876'
         c.load_cli_args(args)
         assert len(c.ports) == 1
+
+
+def test_aws_describe_flag(capsys):
+    with pytest.raises(SystemExit):
+        parser_args = "aws -n asdf --port 22 --port 22 --ip 1.2.3.4/24 --describe".split()
+        parser = ArgumentParser('test_describe')
+        subparsers = parser.add_subparsers()
+        parser.add_argument("-f", "--config-file", required=False, default=SUPPRESS)
+        
+        AWSApp.parser_arguments(subparser=subparsers)
+        args = parser.parse_args(parser_args)
+
+        _a = {'app_name':'test_load_aws_config_cli_overrides_file', 'config_file': cfg_file} if not 'config_file' in vars(args).keys() else {'app_name':'test_load_aws_config_cli_overrides_file', 'config_file': args.config_file}
+
+        c = AWSApp(**_a)
+        c.load_cli_args(args)
+        assert 'loaded config:' in capsys.out
 
 

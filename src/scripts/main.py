@@ -5,12 +5,12 @@ import sys
 from os import get_terminal_size
 import logging
 
-from quickhost import AWSConfig
+from quickhost import AWSApp
 
 logger = logging.getLogger()
 
 fmt='%(asctime)s : %(name)s : %(funcName)s : %(levelname)s: %(message)s'
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 sh = logging.StreamHandler()
 logger.addHandler(sh)
 
@@ -19,7 +19,7 @@ def do_args():
     parser.add_argument("-f", "--config-file", required=False, default=argparse.SUPPRESS, help="Use an alternative to quickhost.conf for default configuration")
     parser.add_argument("--print-config", required=False, action='store_true', help="Print the config params to be used")
     subparsers = parser.add_subparsers()
-    AWSConfig.parser_arguments(subparser=subparsers)
+    AWSApp.parser_arguments(subparser=subparsers)
 
     args = parser.parse_args()
 
@@ -37,9 +37,10 @@ if __name__ == "__main__":
     else:
         _a = {'app_name': args.app_name, 'config_file': args.config_file}
         
-    aws = AWSConfig(**_a)
+    aws = AWSApp(**_a)
     aws.load_cli_args(args)
+
     if args.print_config:
+        print(f"{args.print_config=}")
         aws.print_loaded_args()
         exit(1)
-    aws.create()

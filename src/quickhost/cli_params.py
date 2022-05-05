@@ -39,7 +39,7 @@ class AppCLIParams:
     dry_run: bool = True
 
 
-class ConfigBase(metaclass=ABCMeta):
+class AppBase(metaclass=ABCMeta):
     def __init__(self, _cli_parser_id: str, app_name: str, config_file=DEFAULT_CONFIG_FILEPATH):
         self._cli_parser_id = _cli_parser_id
         self.app_name = app_name

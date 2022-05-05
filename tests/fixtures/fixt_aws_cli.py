@@ -20,7 +20,7 @@ def new_parser():
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers()
         parser.add_argument("-f", "--config-file", required=False, default=argparse.SUPPRESS)
-        quickhost.AWSConfig.parser_arguments(subparser=subparsers)
+        quickhost.AWSApp.parser_arguments(subparser=subparsers)
         return parser
     return _new_app_parser
 
@@ -32,4 +32,4 @@ def new_parser():
 #        else:
 #            _a = {'app_name':'test_load_aws_config_cli_overrides_file', 'config_file': args.config_file}
 #
-#        c = AWSConfig(**_a)
+#        c = AWSApp(**_a)

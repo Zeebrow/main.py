@@ -1,65 +1,96 @@
 from typing import List, Union
 from dataclasses import dataclass
+import logging
+
+import botocore.exceptions
 
 from .constants import *
 
+logger = logging.getLogger(__name__)
+
 class SG:
-    def __init__(self, client: any, vpc_id: str, ports: List[int], cidrs: List[str], dry_run: bool):
+    def __init__(self, client: any, app_name: str, vpc_id: str, ports: List[int], cidrs: List[str], dry_run: bool):
         self.client = client
-        if (config is None) or (app_props is None):
-            raise Exception('SG got no config')
-        print(app_props)
+        self.app_name = app_name
         self.vpc_id = vpc_id
         self.ports = ports
         self.cidrs = cidrs
-        self.group_name = group_name
         self.dry_run = dry_run
-        self.get_security_group()
-        exit()
+        self.sgid = None
 
-        if not self.sgid:
-            self.sgid = self.create()
-        self.add_ingress(ports=ports, cidrs=cidrs)
-        if not config.ports:
-            self.ports = DEFAULT_SG_PORTS
-        else:
-            self.ports = self.ports = config.ports
-        if not config.cidrs:
-            self.cidrs = DEFAULT_SG_PORTS
-        else:
-            self.cidrs = self.cidrs = config.cidrs
 
     def get_security_group(self):
-        _dsg = self.client.describe_security_groups(
-                GroupName=self.group_name,
-                VpcId=VPCID,
-        )
+        # raw response
+        # {'SecurityGroups': [{'Description': 'Made with love and care'
+#             'GroupName': 'asdf'
+#             'IpPermissions': [{'FromPort': 22
+#             'IpProtocol': 'tcp'
+#             'IpRanges': [{'CidrIp': '70.240.235.147/32'
+#             'Description': 'made with quickhosts'}]
+#             'Ipv6Ranges': []
+#             'PrefixListIds': []
+#             'ToPort': 22
+#             'UserIdGroupPairs': []}]
+#             'OwnerId': '188154480716'
+#             'GroupId': 'sg-07b204811dd71f6c0'
+#             'IpPermissionsEgress': [{'IpProtocol': '-1'
+#             'IpRanges': [{'CidrIp': '0.0.0.0/0'}]
+#             'Ipv6Ranges': []
+#             'PrefixListIds': []
+#             'UserIdGroupPairs': []}]
+#             'Tags': [{'Key': 'app'
+#             'Value': 'asdf'}]
+#             'VpcId': 'vpc-7c31a606'}]
+#             'ResponseMetadata': {'RequestId': '7a3d437b-795f-4166-b714-da6088a6744e'
+#             'HTTPStatusCode': 200
+#             'HTTPHeaders': {'x-amzn-requestid': '7a3d437b-795f-4166-b714-da6088a6744e'
+#             'cache-control': 'no-cache
+#             no-store'
+#             'strict-transport-security': 'max-age=31536000; includeSubDomains'
+#             'content-type': 'text/xml;charset=UTF-8'
+#             'content-length': '1761'
+#             'date': 'Thu
+#             05 May 2022 18:20:56 GMT'
+#             'server': 'AmazonEC2'}
+#             'RetryAttempts': 0}}
+        _dsg = None
+        try:
+            _dsg = self.client.describe_security_groups(
+                    GroupNames=[self.app_name],
+                    #VpcId=[self.vpc_id],
+            )
+        except botocore.exceptions.ClientError:
+            logger.debug("security group does not exist!")
+            return None
+        if len(_dsg['SecurityGroups']) > 1:
+            raise RuntimeError(f"More than 1 security group was found with the name '{self.app_name}': {_sg['GroupId'] for _sg in _dsg['SecurityGroups']}")
+        return _dsg['SecurityGroups'][0]['GroupId']
 
     def create(self):
         print('creating sg...', end='')
         try:
             _sg = self.client.create_security_group(
                 Description="Made by quickhost",
-                GroupName=self.group_name,
-                VpcId=VPCID,
+                GroupName=self.app_name,
+                VpcId=self.vpc_id,
                 TagSpecifications=[
                     {
                         'ResourceType': 'security-group',
                         'Tags': [
                             {
                                 'Key': DEFAULT_APP_NAME,
-                                'Value': group_name
+                                'Value': self.app_name
                             }
                         ]
                     }
                 ],
-                DryRun=dry_run
+                DryRun=self.dry_run
             )
             print('done')
-            return sg['GroupId']
-        except be.ClientError:
+            return _sg['GroupId']
+        except botocore.exceptions.ClientError:
             print('error')
-            raise QHRuntimeError("You already have a security group (app) named '{self.group_name}', delete it first or use a different name.")
+            raise Exception(f"You already have a security group named '{self.app_name}', delete it first or use a different name.")
 
     def delete(self):
         pass
@@ -73,7 +104,7 @@ class SG:
                 'IpRanges': [ { 'CidrIp': cidr, 'Description': 'made with quickhosts' } for cidr in cidrs ],
                 'ToPort': int(port),
             })
-        response = ec2.authorize_security_group_ingress(
+        response = self.client.authorize_security_group_ingress(
             GroupId=self.sgid,
             IpPermissions=perms,
             DryRun=self.dry_run,

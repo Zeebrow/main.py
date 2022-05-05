@@ -1,2 +1,1 @@
-from .AWSConfig import AWSConfig
-#from .AWSApp import AWSApp
+from .AWSApp import AWSApp
