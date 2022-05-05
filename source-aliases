@@ -2,13 +2,21 @@
 
 export WORKDIR="$PWD/$BASH_SOURCE"
 
+function getsgs() {
+  local sgs=($(aws ec2 describe-security-groups | jq -r '.SecurityGroups[].GroupName'))
+  sgs=(${sgs[@]/'default'/})
+  echo "${sgs[*]}"
+}
+
 function dsg () {
-  local SG
-  SG=${1:-quickhost}
+  local SG=${1:-quickhost}
   printf "deleting security group '$SG'..."
-  $(aws ec2 delete-security-group --group-name "$SG")
+  res=$(aws ec2 delete-security-group --group-name "$SG" 2>&1)
   if [ "$?" -eq 0 ]; then
     echo Done
+  else
+    echo "$res" | tr -d '\n'
+    echo
   fi
 }
 
