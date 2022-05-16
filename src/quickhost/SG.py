@@ -60,6 +60,7 @@ class SG:
                     #VpcId=[self.vpc_id],
             )
         except botocore.exceptions.ClientError:
+            print("security group does not exist!")
             logger.debug("security group does not exist!")
             return None
         if len(_dsg['SecurityGroups']) > 1:
@@ -86,7 +87,9 @@ class SG:
                 ],
                 DryRun=self.dry_run
             )
-            print('done')
+            print(f"done ({_sg['GroupId']})")
+            self.sgid = _sg['GroupId']
+            self._add_ingress()
             return _sg['GroupId']
         except botocore.exceptions.ClientError:
             print('error')
@@ -95,13 +98,14 @@ class SG:
     def delete(self):
         pass
 
-    def add_ingress(self, ports: List[int], cidrs:List[str]):
+    def _add_ingress(self):
+        print('adding sg ingress...', end='')
         perms = []
-        for port in ports:
+        for port in self.ports:
             perms.append({
                 'FromPort': int(port),
                 'IpProtocol': 'tcp',
-                'IpRanges': [ { 'CidrIp': cidr, 'Description': 'made with quickhosts' } for cidr in cidrs ],
+                'IpRanges': [ { 'CidrIp': cidr, 'Description': 'made with quickhosts' } for cidr in self.cidrs ],
                 'ToPort': int(port),
             })
         response = self.client.authorize_security_group_ingress(
@@ -109,6 +113,7 @@ class SG:
             IpPermissions=perms,
             DryRun=self.dry_run,
         )
+        print(f"done ({[i for i in self.cidrs]}:{[p for p in self.ports]})")
 
     # example _sg
 #    {

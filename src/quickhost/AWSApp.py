@@ -224,9 +224,6 @@ class AWSApp(AppBase):
 
     def create(self, args: dict):
         self._parse_make(args)
-        print(f"{self.cidrs}")
-        print(f"{self.ports}")
-        exit()
         _sg = SG(
             client=self._client,
             app_name=self.app_name,
@@ -236,7 +233,6 @@ class AWSApp(AppBase):
             dry_run=self.dry_run,
         )
         self.sgid = _sg.create()
-        #_sg.add_ingress([80,443], ['0.0.0.0/0'])
         print("self ami ===>" + str(self.ami))
         if self.ami is None:
             print("No ami specified, getting latest al2...", end='')
