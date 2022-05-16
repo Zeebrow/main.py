@@ -38,6 +38,7 @@ class AWSApp(AppBase):
         self.dry_run = None
         self.vpc_id = None
         self.subnet_id = None
+        self.sgid = None
         self.load_default_config()
 
         self._client = None
@@ -138,15 +139,17 @@ class AWSApp(AppBase):
         # ports ingress
         if 'port' in flags:
             # get rid of duplicates
-            _ports = list(dict.fromkeys(ns.port))
+            _ports = list(dict.fromkeys(args['port']))
             ports = []
             for p in _ports:
                 # pretend they're all inst for now
                 try:
-                    ports.append(int(p))
+                    ports.append(str(p))
                 except ValueError:
                     raise RuntimeError("port numbers must be digits")
             self.ports = ports
+        else:
+            self.ports = [*DEFAULT_SG_PORTS]
 
         # cidrs ingress
         if args['ip'] is None:
@@ -221,6 +224,9 @@ class AWSApp(AppBase):
 
     def create(self, args: dict):
         self._parse_make(args)
+        print(f"{self.cidrs}")
+        print(f"{self.ports}")
+        exit()
         _sg = SG(
             client=self._client,
             app_name=self.app_name,
@@ -229,11 +235,26 @@ class AWSApp(AppBase):
             cidrs=self.cidrs,
             dry_run=self.dry_run,
         )
-        _sg.create()
-        _sg.add_ingress([80,443], ['0.0.0.0/0'])
+        self.sgid = _sg.create()
+        #_sg.add_ingress([80,443], ['0.0.0.0/0'])
+        print("self ami ===>" + str(self.ami))
+        if self.ami is None:
+            print("No ami specified, getting latest al2...", end='')
+            self.ami = AWSHost.get_latest_image(client=self._client)
+            print(f"done ({self.ami})")
         _host = AWSHost(
-            client=self.client,
+            client=self._client,
+            app_name=self.app_name,
+            num_hosts=self.num_hosts,
+            image_id=self.ami,
+            instance_type=self.instance_type,
+            subnet_id=self.subnet_id,
+            sgid=self.sgid,
+            key_name=self.key_name,
+            userdata=self.userdata,
+            dry_run=self.dry_run
         )
+        _host.new_instances()
 
     def destroy(self):
         pass
