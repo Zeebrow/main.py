@@ -67,7 +67,7 @@ class AppBase(metaclass=ABCMeta):
 
 
     @abstractmethod
-    def print_loaded_args(self) -> None:
+    def _print_loaded_args(self) -> None:
         pass
 
     @abstractmethod

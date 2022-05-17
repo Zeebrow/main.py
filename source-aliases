@@ -11,7 +11,22 @@ function getsgs() {
 function dsg () {
   local SG=${1:-quickhost}
   printf "deleting security group '$SG'..."
-  res=$(aws ec2 delete-security-group --group-name "$SG" 2>&1)
+  local res=$(aws ec2 delete-security-group --group-name "$SG" 2>&1)
+  if [ "$?" -eq 0 ]; then
+    echo Done
+  else
+    echo "$res" | tr -d '\n'
+    echo
+  fi
+}
+
+#function dapp() {
+function dabb() {
+# dabb on app <o/
+# TODO dabemoji
+  dsg "$1"
+  printf "deleting key pair '$1'..."
+  local res=$(aws ec2 delete-key-pair --key-name "$1" 2>&1)
   if [ "$?" -eq 0 ]; then
     echo Done
   else

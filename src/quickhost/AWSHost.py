@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 
 import boto3
+from botocore.exceptions import ClientError
 
 from .utilities import get_my_public_ip, convert_datetime_to_string
 from .constants import *
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class AWSHost:
-    def __init__(self, client: any, app_name, num_hosts, image_id, instance_type, sgid, subnet_id, key_name, userdata, dry_run):
+    def __init__(self, client: any, app_name, num_hosts, image_id, instance_type, sgid, subnet_id, userdata, dry_run, key_name=None ):
         self.client = client
         self.app_name=app_name
         self.num_hosts=num_hosts
@@ -27,12 +28,10 @@ class AWSHost:
         self.sgid=sgid
         self.subnet_id=subnet_id
         self.key_name = key_name
+        if key_name is None:
+            self.key_name = app_name
         self.userdata=userdata
         self.dry_run=dry_run
-        if self.image_id is None:
-            print("No ami specified, getting latest al2...", end='')
-            self.image_id = self.get_latest_image()
-            print("done ({self.ami})")
 
     @classmethod
     def get_latest_image(self, client=None):
@@ -58,15 +57,27 @@ class AWSHost:
         sortedimages = sorted(response['Images'], key=lambda x: datetime.strptime(x['CreationDate'], '%Y-%m-%dT%H:%M:%S.%fZ'))
         return sortedimages[-1]['ImageId']
 
-    def new_ec2_key(self):
-        """@@@TODO"""
-        # check exists
-        # create
-        # save pem
-        # update config?
-        pass
+    def describe(self):
+        _app_hosts = self.client.describe_instances(
+            Filters=[
+                { 'Name': f"tag:{DEFAULT_APP_NAME}", 'Values': [ self.app_name, ] },
+            ],
+            DryRun=False,
+            # TODO/figure out
+            MaxResults=10,
+            #NextToken='string'
+        )
+        print(_app_hosts)
+        return 
+
 
     def new_instances(self):
+        ## this was moved from __init__ after causing describe() problems
+        if self.image_id is None:
+            print("No ami specified, getting latest al2...", end='')
+            self.image_id = self.get_latest_image()
+            print("done ({self.ami})")
+        ##
         print(f"starting hosts...")
         _run_instances_params = {
             'ImageId': self.image_id,
@@ -118,15 +129,7 @@ class AWSHost:
             data = ud.read()
         return data
 
-if __name__ == "__main__":
-    params = {
-            'num_hosts':1,
-            'instance_type':'t3.nano', 
-            'app_name': 'test_make_instances.py',
-            'ports':[22],
-            'cidrs':['123'],
-            'subnet_id': self.instance_config.subnet_id,
-            'dry_run':True,
-            }
-    make_instances(**params)
+    def create(self):
+        self.new_instances()
+
 

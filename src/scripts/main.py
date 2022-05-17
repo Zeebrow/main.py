@@ -41,5 +41,5 @@ aws.load_cli_args(args)
 
 if args.print_config:
     print(f"{args.print_config=}")
-    aws.print_loaded_args()
+    aws._print_loaded_args("your config:")
     exit(1)
