@@ -1,3 +1,4 @@
+import unittest
 import pytest
 from pathlib import Path
 from argparse import ArgumentParser, Namespace, SUPPRESS
@@ -6,93 +7,23 @@ import logging
 from quickhost import AWSApp
 from fixtures.fixt_aws_cli import new_parser
 
+
 cfg_file = Path('tests/data/test_aws_config.conf').absolute()
 
-def test_load_fnf_raises():
-    with pytest.raises(RuntimeError):
-        c = AWSApp('test_load_aws_config_file', 'gobbldiegook')
+class TestConfig(unittest.TestCase):
 
-def test_load_aws_config_file():
-    c = AWSApp('test_load_aws_config_file', cfg_file)
-    assert c.subnet_id == 'subnet-abc123'
-    assert c.vpc_id == 'vpc-_all'
+    def test_load_filenotfound_raises(self):
+        with pytest.raises(RuntimeError):
+            c = AWSApp('test_load_aws_config_file', 'gobbldiegook')
 
-def test_app_config_overrides__all():
-    c = AWSApp('test_app_config_overrides__all', cfg_file)
-    assert c.subnet_id != 'subnet-_all'
-    assert c.vpc_id != 'vpc-_all'
+    def test_load_aws_config_file(self):
+        c = AWSApp(app_name='test_load_aws_config_file', config_file=cfg_file)
+        assert c.subnet_id == 'subnet-abc123'
+        assert c.vpc_id == 'vpc-_all'
 
-def test_load_config_cli_arg(new_parser):
-    cfg_file = 'tests/data/another_test_aws_config.conf'
-    cfg2 = Path('tests/data/another_test_aws_config.conf')
-    app_name = 'test_load_config_cli_arg'
-
-    cli_args = " --config-file " + cfg_file
-    cli_args += " aws"
-    cli_args += " -n test_load_config_cli_arg \
-            --port 30 \
-            --port 22 \
-            --port 22 \
-            --ip 1.2.3.4/24 \
-            --ip 3.2.1.5 \
-            --vpc-id vpc-overrides \
-            --subnet-id subnet-cli-override"
-    cli_args = cli_args.split()
-
-    parser = new_parser()
-    args = parser.parse_args(cli_args)
-    c = AWSApp(app_name=args.app_name, config_file=args.config_file)
-
-    assert c.subnet_id == 'subnet-asdf9876'
-    assert c.vpc_id == 'vpc-asdf9876'
-    c.load_cli_args(args)
-    assert c.app_name == app_name
-    assert c.config_file == cfg2.absolute()
-    assert '1.2.3.4/24' in c.cidrs
-    assert '3.2.1.5/32' in c.cidrs
-    for p in c.ports:
-        assert type(p) == type(int())
-    assert len(c.ports) == 2
-    assert c.subnet_id == 'subnet-cli-override'
-    assert c.vpc_id == 'vpc-overrides'
-
-
-def test_load_aws_config_cli_overrides_file():
-    should_pass = [
-        "aws -n asdf --port 22 --port 22 --ip 1.2.3.4/24 ".split(),
-    ]
-    # @@@ fixture, or what?
-    for sp in should_pass:
-        parser = ArgumentParser('test_load')
-        subparsers = parser.add_subparsers()
-        parser.add_argument("-f", "--config-file", required=False, default=SUPPRESS)
-        
-        AWSApp.parser_arguments(subparser=subparsers)
-        args = parser.parse_args(sp)
-
-        _a = {'app_name':'test_load_aws_config_cli_overrides_file', 'config_file': cfg_file} if not 'config_file' in vars(args).keys() else {'app_name':'test_load_aws_config_cli_overrides_file', 'config_file': args.config_file}
-
-        c = AWSApp(**_a)
-        assert c.subnet_id == 'subnet-9876'
-        assert c.vpc_id == 'vpc-9876'
-        c.load_cli_args(args)
-        assert len(c.ports) == 1
-
-
-def test_aws_describe_flag(capsys):
-    with pytest.raises(SystemExit):
-        parser_args = "aws -n asdf --port 22 --port 22 --ip 1.2.3.4/24 --describe".split()
-        parser = ArgumentParser('test_describe')
-        subparsers = parser.add_subparsers()
-        parser.add_argument("-f", "--config-file", required=False, default=SUPPRESS)
-        
-        AWSApp.parser_arguments(subparser=subparsers)
-        args = parser.parse_args(parser_args)
-
-        _a = {'app_name':'test_load_aws_config_cli_overrides_file', 'config_file': cfg_file} if not 'config_file' in vars(args).keys() else {'app_name':'test_load_aws_config_cli_overrides_file', 'config_file': args.config_file}
-
-        c = AWSApp(**_a)
-        c.load_cli_args(args)
-        assert 'loaded config:' in capsys.out
+    def test_app_config_overrides__all(self):
+        c = AWSApp(app_name='test_app_config_overrides__all', config_file=cfg_file)
+        assert c.vpc_id == 'vpc-OVERRIDDEN'
+        assert c.subnet_id == 'subnet-OVERRIDDEN'
 
 

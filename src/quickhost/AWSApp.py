@@ -18,13 +18,27 @@ from .AWSKeypair import KP
 
 logger = logging.getLogger(__name__)
 
-AWS_DESCRIBE = 0
-AWS_MAKE = 1
-AWS_UPDATE = 2
-AWS_DESTROY = 3
 
 class AWSApp(AppBase):
-    def __init__(self, app_name, config_file=DEFAULT_CONFIG_FILEPATH):
+    """
+    AWSApp
+    Sort-of a dataclass, sort-of not.
+    I've tried putting all the 'None' arguments that aren't an __init__() parameter into
+    their own class, but I found it to be a headache.
+    Although, it might be way more testable to have a configuration class... I think we're past that point.
+
+    Args need to be evaluated on their own terms, because context is so important... e.g.
+    * 'ports' is not really needed, but should be *settable* from CLI or Config
+    * 'config_file' is absolutely needed, and *cannot* be set from Config (environment variables are an interesting option)
+    * 'ssh_key_filepath' is arguably not even a plugin argument
+    """
+    def __init__(self, app_name, config_file=None, client=None):
+        self._client = client
+        if client is None:
+            self._client = boto3.client('ec2')
+        self.config_file = config_file
+        if config_file is None:
+            config_file = DEFAULT_CONFIG_FILEPATH
         super().__init__('aws', app_name, config_file)
         self._config_file_parser = AppConfigFileParser()
         self._config_file_parser.read(self.config_file)
@@ -42,14 +56,10 @@ class AWSApp(AppBase):
         self.sgid = None
         self.load_default_config()
 
-        self._client = None
-
     def _all_cfg_key(self):
         return f'{self._cli_parser_id}:_all'
-
     def _app_cfg_key(self):
         return f'{self._cli_parser_id}:{self.app_name}'
-
     def load_default_config(self):
         """
         read values from config file, and import the relevant ones
@@ -107,15 +117,14 @@ class AWSApp(AppBase):
             mu_arg_group.add_argument("--ami", required=False, default=SUPPRESS, help="change the ami to launch, see source-aliases for getting lastest")
             mu_arg_group.add_argument("-u", "--userdata", required=False, default=SUPPRESS, help="path to optional userdata file")
 
-
         # cli crud
         qh_main = subparser.add_subparsers()
         qhmake = qh_main.add_parser("make")
         qhdescribe = qh_main.add_parser("describe")
         qhupdate = qh_main.add_parser("update")
         qhdestroy = qh_main.add_parser("destroy")
-        ### need to make a custom arg for each parser, so we can tell the difference after parser.parse_args() is called.
-        # jankiness spotted?
+
+        ### jankiness spotted? need to make a custom arg for each parser, so we can tell the difference after parser.parse_args() is called.
         qhmake.set_defaults(__qhaction="make")
         qhdescribe.set_defaults(__qhaction="describe")
         qhupdate.set_defaults(__qhaction="update")
@@ -136,14 +145,14 @@ class AWSApp(AppBase):
         qh_add_make_update(qhmake)
         qh_add_make_update(qhupdate)
         ###
+    # end of parser_arguments()
 
     def load_cli_args(self, args: dict):
         """
-        eats what parser_arguments() sets up, overriding load_default_config() values
-
+        eats a user's input from the CLI 'form' that parser_arguments() sets up. 
+        Subsequently calls an appropriate AWSApp CRUD method.
+        This method overrides AWSApp instance properties that were set after load_default_config() returns.
         """
-        self._client = boto3.client("ec2")
-        # CRUD always available, @@@todo test
         if args['__qhaction'] == 'make':
             print('make')
             self.create(args)
@@ -154,15 +163,16 @@ class AWSApp(AppBase):
             exit(0)
         elif args['__qhaction'] == 'update':
             print('update')
-            print("@@@ not implemented")
-            exit(0)
+            print("@@@ WIP")
+            exit(1)
         elif args['__qhaction'] == 'destroy':
             print('destroy')
-            print("@@@ not implemented")
-            exit(0)
+            print("@@@ WIP")
+            exit(1)
         else:
             raise Exception("should have printed help in main.py! Bug!")
     
+
     def _parse_make(self, args: dict):
         flags = args.keys()
         # ports ingress
@@ -198,6 +208,9 @@ class AWSApp(AppBase):
         # ec2 key name
         if 'key_name' in flags:
             self.key_name = args['key_name']
+            print('=========>',args['key_name'])
+        else:
+            self.key_name = args['app_name']
         # ec2 key pem file
         if 'ssh_key_filepath' in flags:
             self.ssh_key_filepath = args['ssh_key_filepath']
@@ -206,7 +219,8 @@ class AWSApp(AppBase):
 
         # the rest 
         if 'dry_run' in flags:
-            self.dry_run = not args['dry_run']
+            #self.dry_run = not args['dry_run']
+            self.dry_run = args['dry_run']
         if 'host_count' in flags:
             self.num_hosts = args['host_count']
         if 'instance_type' in flags:
@@ -217,6 +231,7 @@ class AWSApp(AppBase):
             self.vpc_id= args['vpc_id']
         if 'subnet_id' in flags:
             self.subnet_id= args['subnet_id']
+    ### end of _parse_make()
 
 
     def _parse_describe(self, args: dict):
@@ -260,7 +275,6 @@ class AWSApp(AppBase):
         _kp = KP(
             client=self._client,
             app_name=self.app_name,
-            key_name=self.ke
             ssh_key_filepath=None,
             dry_run=False
         )
@@ -272,19 +286,18 @@ class AWSApp(AppBase):
             instance_type=self.instance_type,
             subnet_id=self.subnet_id,
             sgid=self.sgid,
-            # factor out
-            key_name=self.app_name,
             userdata=self.userdata,
             dry_run=False
         )
         self.sgid = _sg.get_security_group()
         self.kpid = _kp.get_key_id()
-        self.ec2ids = _host.describe()
+        self.ec2ids =  []
+        for inst in _host.describe():
+            self.ec2ids.append(inst['instance_id'])
         self._print_loaded_args(heading=f"Params for app '{self.app_name}'")
 
     def create(self, args: dict):
         self._parse_make(args)
-
         _kp = KP(
             client=self._client,
             app_name=self.app_name,
@@ -292,7 +305,6 @@ class AWSApp(AppBase):
             dry_run=self.dry_run
         )
         _kp.create()
-
         _sg = SG(
             client=self._client,
             app_name=self.app_name,
@@ -302,7 +314,6 @@ class AWSApp(AppBase):
             dry_run=self.dry_run,
         )
         self.sgid = _sg.create()
-        print("self ami ===>" + str(self.ami))
         if self.ami is None:
             print("No ami specified, getting latest al2...", end='')
             self.ami = AWSHost.get_latest_image(client=self._client)
@@ -315,13 +326,20 @@ class AWSApp(AppBase):
             instance_type=self.instance_type,
             subnet_id=self.subnet_id,
             sgid=self.sgid,
-            # factor out
-            key_name=self.app_name,
+            key_name=self.key_name,
             userdata=self.userdata,
             dry_run=self.dry_run
         )
-        _host.new_instances()
+        _host.create()
+        app_instances = _host.wait_for_hosts()
+        #_host.get_ssh()
+        print('Done')
+        print(app_instances)
+
+    def update(self):
+        pass
 
     def destroy(self):
         pass
-
+if __name__ == '__main__':
+    pass

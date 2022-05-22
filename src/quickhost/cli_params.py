@@ -11,6 +11,10 @@ from .constants import *
 
 logger = logging.getLogger(__name__)
 
+"""
+perhaps the most useless of modules*
+"""
+
 class AppConfigFileParser(configparser.ConfigParser):
     """
     example config file:
@@ -26,21 +30,9 @@ class AppConfigFileParser(configparser.ConfigParser):
     def __init__(self):
         super().__init__(allow_no_value=True)
 
-@dataclass(init=True)
-class AppCLIParams:
-    app_name: str
-    userdata: str = None
-    ami: str = None
-    num_hosts: int = 1
-    instance_type: str = 't2.micro'
-    userdata: str = None
-    ports: List[int] = None 
-    cidrs: List[str] = None
-    dry_run: bool = True
-
-
 class AppBase(metaclass=ABCMeta):
     def __init__(self, _cli_parser_id: str, app_name: str, config_file=DEFAULT_CONFIG_FILEPATH):
+        """should there actually be logic here? in the same vain, more than just primitive data types?"""
         self._cli_parser_id = _cli_parser_id
         self.app_name = app_name
         self.config_file = Path(config_file).absolute()
@@ -62,34 +54,45 @@ class AppBase(metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def parser_arguments(self, subparsers: any) -> None:
-        """modify main ArgumentParser to accept these arguments"""
+        """modify main ArgumentParser to accept arguments required by plugin"""
         pass
 
-
-    @abstractmethod
-    def _print_loaded_args(self) -> None:
-        pass
-
+# maybe all crud's should exit instead of return
     @abstractmethod
     def create(self):
-        """do the needful to get app up"""
+        """
+        do the needful to get app up
+        should promptly exit after returning
+        """
         pass
 
     @abstractmethod
-    def destroy(self):
-        """do the needful to tear app down"""
+    def describe(self) -> dict:
+        """return information about resources in the target app"""
+        pass
+
+    @abstractmethod
+    def update(self):
+        """change the app in some way"""
         pass
         
-class App(metaclass=ABCMeta):
+    @abstractmethod
+    def destroy(self):
+        """
+        delete all resources associated with your app
+        should promptly exit after returning
+        """
+        pass
+        
+class QuickhostApp(metaclass=ABCMeta):
     def __init__(self):
         pass
 
     @abstractmethod
-    def create(self):
-        """do the needful to get app up"""
+    def parser_arguments(self, subparser: any) -> None:
+        """Add required arguments to a parser"""
         pass
 
     @abstractmethod
-    def destroy(self):
-        """do the needful to tear app down"""
+    def _print_loaded_args(self) -> None:
         pass

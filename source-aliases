@@ -1,6 +1,7 @@
 # alias incomplete_di='aws ec2 describe-instances --filter 'Name=state-reason-code,Values='
 
 export WORKDIR="$PWD/$BASH_SOURCE"
+export QH_TEST_DATA_DIR="${WORKDIR%/*}"
 
 function getsgs() {
   local sgs=($(aws ec2 describe-security-groups | jq -r '.SecurityGroups[].GroupName'))
@@ -11,13 +12,14 @@ function getsgs() {
 function dsg () {
   local SG=${1:-quickhost}
   printf "deleting security group '$SG'..."
-  local res=$(aws ec2 delete-security-group --group-name "$SG" 2>&1)
+  local f=$(mktemp)
+  aws ec2 delete-security-group --group-name "$SG" 2>&1 > "$f"
   if [ "$?" -eq 0 ]; then
     echo Done
   else
-    echo "$res" | tr -d '\n'
-    echo
+    cat "$f" | tr -d '\n'
   fi
+  rm "$f"
 }
 
 #function dapp() {
@@ -26,13 +28,15 @@ function dabb() {
 # TODO dabemoji
   dsg "$1"
   printf "deleting key pair '$1'..."
-  local res=$(aws ec2 delete-key-pair --key-name "$1" 2>&1)
+  local f=$(mktemp)
+  aws ec2 delete-key-pair --key-name "$1" 2>&1 > "$f"
   if [ "$?" -eq 0 ]; then
     echo Done
   else
-    echo "$res" | tr -d '\n'
-    echo
+    cat "$f" | tr -d '\n'
   fi
+  rm "$1.pem"
+  rm "$f"
 }
 
 function instids () {
@@ -67,8 +71,8 @@ function listem() {
 
 function getssh () {
   sgname=${1:-quickhost}
-# TODO new one lol. "its an example"
-  local keyname=ec2-172-16-1.pem
+  #local keyname=ec2-172-16-1.pem
+  local keyname="$1.pem"
 # user ubuntu for ubuntu..
   local host_user=ec2-user
   echo "ssh commands for '$sgname':"
@@ -78,7 +82,7 @@ function getssh () {
       --query 'Reservations[].Instances[].{id:PublicIpAddress}' \
       --output text))
   for i in "${ips[@]}"; do
-    printf "ssh -i %s/.ssh/%s %s@%s\n" "$HOME" "$keyname" "$host_user" "$i"
+    printf "ssh -i %s %s@%s\n" "$keyname" "$host_user" "$i"
   done
 }
 

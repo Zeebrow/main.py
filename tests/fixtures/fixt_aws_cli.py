@@ -3,16 +3,6 @@ import argparse
 
 import quickhost
 
-should_pass = [ "aws -n asdf --port 22 --port 22 --ip 1.2.3.4/24 ".split(), ]
-
-
-#@pytest.fixture
-#def cli_line(app_name: str, config_file=None):
-#    _line = "aws"
-#    if config_file is not None:
-#        _line = "--config-file " _config_file + " " + _line
-#    _line = _line + " -n " + app_name
-#    return _line
 
 @pytest.fixture
 def new_parser():
@@ -20,7 +10,8 @@ def new_parser():
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers()
         parser.add_argument("-f", "--config-file", required=False, default=argparse.SUPPRESS)
-        quickhost.AWSApp.parser_arguments(subparser=subparsers)
+        aws_subparser = subparsers.add_parser('aws')
+        quickhost.AWSApp.parser_arguments(subparser=aws_subparser)
         return parser
     return _new_app_parser
 
