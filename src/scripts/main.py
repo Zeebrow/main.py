@@ -62,9 +62,5 @@ else:
 ###
 
 aws = AWSApp(**_a)
-aws.load_cli_args(args)
+exit_code = aws.run(args)
 
-if args.print_config:
-    print(f"{args.print_config=}")
-    aws._print_loaded_args("your config:")
-    exit(1)

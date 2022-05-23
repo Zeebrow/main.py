@@ -4,7 +4,7 @@ from argparse import Namespace, SUPPRESS, ArgumentParser, _ArgumentGroup
 from abc import ABCMeta, abstractmethod
 import configparser
 import logging
-from os import get_terminal_size
+import os
 import json
 
 import boto3
@@ -147,7 +147,7 @@ class AWSApp(AppBase):
         ###
     # end of parser_arguments()
 
-    def load_cli_args(self, args: dict):
+    def run(self, args: dict):
         """
         eats a user's input from the CLI 'form' that parser_arguments() sets up. 
         Subsequently calls an appropriate AWSApp CRUD method.
@@ -156,23 +156,22 @@ class AWSApp(AppBase):
         if args['__qhaction'] == 'make':
             print('make')
             self.create(args)
-            exit(0)
+            return 0
         elif args['__qhaction'] == 'describe':
             print('describe')
             self.describe(args)
-            exit(0)
+            return 0
         elif args['__qhaction'] == 'update':
             print('update')
             print("@@@ WIP")
-            exit(1)
+            return 1
         elif args['__qhaction'] == 'destroy':
             print('destroy')
             print("@@@ WIP")
-            exit(1)
+            return 1
         else:
             raise Exception("should have printed help in main.py! Bug!")
     
-
     def _parse_make(self, args: dict):
         flags = args.keys()
         # ports ingress
@@ -247,19 +246,25 @@ class AWSApp(AppBase):
 
     def _print_loaded_args(self, heading=None) -> None:
         """print the currently loaded app parameters"""
-        ul = ''
+        underline_char = '*'
+        fill_char = '.'
         if heading:
-            for char in heading:
-                ul += '-'
-            print(f"{heading}")
-            print(ul)
-        if get_terminal_size()[0] > 80:
-            _w = 40
+            print(heading)
+            print(underline_char*len(heading))
+
+        # qualm pytest when running without -s
+        if os.isatty(1):
+            if os.get_terminal_size()[0] > 80:
+                termwidth = 40
+            else:
+                termwidth = os.get_terminal_size()[0] 
+            for k,v in self.__dict__.items():
+                if not k.startswith("_"):
+                    print("{0:{fc}{align}{width}}{1}".format(
+                        k, v, fc=fill_char, align='<', width=termwidth
+                    ))
         else:
-            _w = get_terminal_size()[0] 
-        for k,v in self.__dict__.items():
-            if not k.startswith("_"):
-                print(k.ljust(_w,'.'), v)
+            logger.warning("There's nowhere to show your results!")
         return None
 
     def describe(self, args: dict) -> None:
@@ -289,7 +294,8 @@ class AWSApp(AppBase):
             userdata=self.userdata,
             dry_run=False
         )
-        self.sgid = _sg.get_security_group()
+        _sg.describe()
+        self.sgid = _sg.sgid
         self.kpid = _kp.get_key_id()
         self.ec2ids =  []
         for inst in _host.describe():

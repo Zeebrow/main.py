@@ -9,3 +9,4 @@ tmp
 *.json
 **.tar.gz
 **.swp
+**.pem

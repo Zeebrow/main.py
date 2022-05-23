@@ -18,6 +18,10 @@ except:
 
 logger = logging.getLogger(__name__)
 
+class AWSPort:
+    """This will be fun"""
+    pass
+
 class SG:
     def __init__(self, client: any, app_name: str, vpc_id: str, ports: List[int], cidrs: List[str], dry_run: bool):
         self.client = client
@@ -99,16 +103,35 @@ class SG:
         store_test_data(resource='SG', action='_add_ingress', response_data=response)
 
     def describe(self):
-        response = self.client.describe_security_groups(
-            GroupNames=[self.app_name],
-            Filters=[
-                {
-                    'Name': 'vpc-id',
-                    'Values': [ self.vpc_id, ]
-                },
-            ],
-        )
-        store_test_data(resource='SG', action='describe', response_data=response)
+        response = None
+        self.ports = []
+        self.cirds = []
+        try:
+            response = self.client.describe_security_groups(
+                GroupNames=[self.app_name],
+                Filters=[
+                    { 'Name': 'vpc-id', 'Values': [ self.vpc_id, ] },
+                ],
+            )
+            store_test_data(resource='SG', action='describe', response_data=response)
+            self.sgid = response['SecurityGroups'][0]['GroupId']
+            for p in response['SecurityGroups'][0]['IpPermissions']:
+                if p['ToPort'] == p['FromPort']:
+                    self.ports.append("{}/{}".format(
+                        p['ToPort'],
+                        p['IpProtocol']
+                    ))
+                else:
+                    self.ports.append("{0}/{2}-{1}/{2}".format(
+                        p['ToPort'],
+                        p['FromPort'],
+                        p['IpProtocol']
+                    ))
+
+        except botocore.exceptions.ClientError as e:
+            if 'InvalidGroup.NotFound' in e.response:
+                self.sgid = None
+                logger.error(f"No security group found for app '{self.app_name}' (does the app exist?)")
         return response
 
 if __name__ == '__main__':

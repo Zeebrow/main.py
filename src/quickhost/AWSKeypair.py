@@ -61,7 +61,6 @@ class KP:
         self.key_id = _existing_key['KeyPairs'][0]['KeyPairId']
         self._fingerprint = _existing_key['KeyPairs'][0]['KeyFingerprint']
         store_test_data(resource='KP', action='get_key_id', response_data=_existing_key)
-        del _existing_key
         return self.key_id
 
     def create(self) -> dict:
@@ -168,10 +167,12 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
                 self.app_name
             ],
             DryRun=False,
-            # @@@No idea why the docs differ so much from what I'm able to code
-            # It just means less copy-pasting, I suppose.
-            #IncludePublicKey=True
+            # @@@The docs clearly show this param: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.describe_key_pairs
+            # but it throws an error
+            IncludePublicKey=True
         )
+        self.key_id = _existing_key['KeyPairs'][0]['KeyPairId']
+        self._fingerprint = _existing_key['KeyPairs'][0]['KeyFingerprint']
         return _existing_key
 
 
