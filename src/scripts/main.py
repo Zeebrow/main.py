@@ -1,21 +1,28 @@
-#!/usr/bin/env python3
 import json
 import argparse
 import sys
 from os import get_terminal_size
 import logging
+import configparser
+from pathlib import Path
 
 from quickhost import AWSApp
 
-"""
-What's actually going on here...
-1) setup logging
-2) setup quickhost app args and subparser
-3) AWSApp appends its arguments to the subparser
-4) parse args
-5) sort through the wreckage
-6) Create the AWSApp
-"""
+# # this
+# 
+# very clear order of operations:
+# 1. look up app name in config
+# 2. get cloud provider/load plugin
+# 3? call plugin parser_arguments()
+# 4. parser.parse_args() and run()
+#
+# - load plugin given in ini section name (e.g. [myapp:aws]) or variable name (e.g. AWS_VAR_NAME='asdf' under section [myapp])
+# problem: cli params are stored in App instance 'attributes' (all the self.shit)
+#  - solution A) main.py singleton
+#  - solution B) (oh fug) per-plugin configuration class
+#  - solution C) literally dict() and give to called plugin
+
+DEFAULT_CONFIG_FILEPATH = str(Path("/opt/etc/quickhost/quickhost.conf").absolute())
 
 logger = logging.getLogger()
 
@@ -24,43 +31,60 @@ logger.setLevel(logging.WARNING)
 sh = logging.StreamHandler()
 logger.addHandler(sh)
 
-parser = argparse.ArgumentParser(description="make a bunch of ec2 servers, relatively quickly")
-parser.add_argument("-f", "--config-file", required=False, default=argparse.SUPPRESS, help="Use an alternative configuration file to override the default.")
-parser.add_argument("--print-config", required=False, action='store_true', help="Print the config params to be used")
+class AppConfigFileParser(configparser.ConfigParser):
+    def __init__(self):
+        super().__init__(allow_no_value=True)
 
-subparsers = parser.add_subparsers()
-aws_subparser = subparsers.add_parser('aws')
-AWSApp.parser_arguments(subparser=aws_subparser)
+def load_plugin(hosting_provider: str):
+    """step 3 load plugin, Somehow™ """
+    return AWSApp
 
+def app_parser_pass_1():
+    parser = argparse.ArgumentParser(description="make easily managed hosts, quickly")
+    # aah im gonna hate this
+    parser.add_argument("-f", "--config-file", required=False, default=argparse.SUPPRESS, help="Use an alternative configuration file to override the default.")
+    qh_main = parser.add_subparsers()
+    qhmake      = qh_main.add_parser("make").set_defaults(__qhaction="make")
+    qhdescribe  = qh_main.add_parser("describe")
+    qhupdate    = qh_main.add_parser("update")
+    qhdestroy   = qh_main.add_parser("destroy")
+    qhdescribe.set_defaults(__qhaction="describe")
+    qhupdate.set_defaults(__qhaction="update")
+    qhdestroy.set_defaults(__qhaction="destroy")
+    parser.add_argument("app_name", default=argparse.SUPPRESS, help="app name")
+    return parser
+
+def app_parser_pass_2():
+    app_parser = app_parser_pass_1()
+    if len(sys.argv) == 1:
+        print('helo')
+        exit(1)
+
+    app_args = vars(app_parser.parse_args())
+    config_parser = AppConfigFileParser()
+    _cfg_file = DEFAULT_CONFIG_FILEPATH 
+    if 'config_file' in app_args.keys():
+        _cfg_file = app_args['config_file']
+    config_parser.read(_cfg_file)
+    # step 2 - infer 'aws' 
+    for a in config_parser.sections():
+        an,hp = a.split(':')
+        if an == app_args['app_name']:
+            app_config = config_parser[f"{app_args['app_name']}:{hp}"]
+            # step 3 load plugin
+            app = load_plugin(hp)(app_args['app_name'], config_file=_cfg_file)
+            # ...
+        # ...
+
+    if app_args['__qhaction'] == 'make':
+        app.make_parser_arguments(app_parser)
+    # ...
+    return app, app_parser
+
+app, parser = app_parser_pass_2()
 args = vars(parser.parse_args())
+print(args)
+app.run(args)
 
-# work-around
-if len(sys.argv) == 1:
-    parser.print_help()
-    sys.exit(1)
-
-### smelling janky
-# This is the result of using a configuration file.
-# The program needs a configuration file, so it's sort of "layered"
-# Both the app and any 'plugins' will use the same configuration file, obviously,
-# So the question I have is what is the 'best' way for main.py to hand-off configuration 
-# to a plugin?
-#
-# One way would be to create main.py in a similar manner to the AWS plugin:
-# have a separate Python module encapsulate the config into a class, and
-# modify a top-leel parser with cli arguments as it requires
-#
-# Another way is literally the following dozen or so lines of code.
-if not '__qhaction' in args.keys():
-    aws_subparser.print_help()
-    exit()
-
-if not 'config_file' in args.keys():
-    _a = {'app_name': args['app_name']}
-else:
-    _a = {'app_name': args['app_name'], 'config_file': args['config_file']}
-###
-
-aws = AWSApp(**_a)
-exit_code = aws.run(args)
+exit()
 

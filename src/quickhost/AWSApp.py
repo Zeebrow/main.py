@@ -28,14 +28,12 @@ class AWSApp(AppBase):
     Although, it might be way more testable to have a configuration class... I think we're past that point.
 
     Args need to be evaluated on their own terms, because context is so important... e.g.
-    * 'ports' is not really needed, but should be *settable* from CLI or Config
+    * 'ports' is not technically needed, but should be *settable* from CLI or Config
     * 'config_file' is absolutely needed, and *cannot* be set from Config (environment variables are an interesting option)
     * 'ssh_key_filepath' is arguably not even a plugin argument
     """
-    def __init__(self, app_name, config_file=None, client=None):
-        self._client = client
-        if client is None:
-            self._client = boto3.client('ec2')
+    def __init__(self, app_name, config_file=None):
+        self._client = boto3.client('ec2')
         self.config_file = config_file
         if config_file is None:
             config_file = DEFAULT_CONFIG_FILEPATH
@@ -57,14 +55,15 @@ class AWSApp(AppBase):
         self.load_default_config()
 
     def _all_cfg_key(self):
-        return f'{self._cli_parser_id}:_all'
+        return f'_all:{self._cli_parser_id}'
     def _app_cfg_key(self):
-        return f'{self._cli_parser_id}:{self.app_name}'
+        return f'{self.app_name}:{self._cli_parser_id}'
     def load_default_config(self):
         """
         read values from config file, and import the relevant ones
         run before load_cli_args()
         """
+        print("==============> load")
         try:
             all_config = self._config_file_parser[self._all_cfg_key()]
             for k in all_config:
@@ -72,8 +71,10 @@ class AWSApp(AppBase):
                     self.__dict__[k] = self._config_file_parser[self._all_cfg_key()][k]
                 else:
                     logger.warning(f"Ignoring bad param in config: '{k}'")
+                    print(f"Ignoring bad param in config: '{k}'")
         except KeyError:
             logger.debug(f"No '_all' config ({self._all_cfg_key()}) found in config file '{self.config_file}'")
+            print(f"No '_all' config ({self._all_cfg_key()}) found in config file '{self.config_file}'")
             all_config = None
         try:
             app_config = self._config_file_parser[self._app_cfg_key()]
@@ -82,71 +83,40 @@ class AWSApp(AppBase):
                     self.__dict__[k] = self._config_file_parser[self._app_cfg_key()][k]
                 else:
                     logger.warning(f"Ignoring bad param in config: '{k}'")
+                    print(f"Ignoring bad param in config: '{k}'")
         except KeyError:
             logger.debug(f"No app config ({self._app_cfg_key()}) found in config file '{self.config_file}'")
+            print(f"No app config ({self._app_cfg_key()}) found in config file '{self.config_file}'")
             app_config = None
+
+    def update_parser_arguments(self, parser: ArgumentParser):
+        parser.add_argument("-y", "--dry-run", required=False, action='store_true', help="prevents any resource creation when set")
+        parser.add_argument("-p", "--port", required=False, type=int, action='append', default=SUPPRESS, help="add an open tcp port to security group, applied to all ips")
+        parser.add_argument("--ip", required=False, action='append', help="additional ipv4 to allow through security group. all ports specified with '--port' are applied to all ips specified with --ip if a cidr is not included, it is assumed to be /32")
+        parser.add_argument("--instance-type", required=False, default="t2.micro", help="change the type of instance to launch")
+        parser.add_argument("--ami", required=False, default=SUPPRESS, help="change the ami to launch, see source-aliases for getting lastest")
+        parser.add_argument("-u", "--userdata", required=False, default=SUPPRESS, help="path to optional userdata file")
+        pass
+
+    def make_parser_arguments(self, parser: ArgumentParser):
+        """arguments for `aws make`"""
+        parser.add_argument("--vpc-id", required=False, default=SUPPRESS, help="specify a VpcId to choose the vpc in which to launch hosts")
+        parser.add_argument("--subnet-id", required=False, default=SUPPRESS, help="specify a SubnetId to choose the subnet in which to launch hosts")
+        parser.add_argument("-c", "--host-count", required=False, default=1, help="number of hosts to create")
+        parser.add_argument("--ssh-key-filepath", required=False, default=SUPPRESS, help="download newly created key to target file (default is APP_NAME.pem in cwd)")
+        parser.add_argument("-y", "--dry-run", required=False, action='store_true', help="prevents any resource creation when set")
+        parser.add_argument("-p", "--port", required=False, type=int, action='append', default=SUPPRESS, help="add an open tcp port to security group, applied to all ips")
+        parser.add_argument("--ip", required=False, action='append', help="additional ipv4 to allow through security group. all ports specified with '--port' are applied to all ips specified with --ip if a cidr is not included, it is assumed to be /32")
+        parser.add_argument("--instance-type", required=False, default="t2.micro", help="change the type of instance to launch")
+        parser.add_argument("--ami", required=False, default=SUPPRESS, help="change the ami to launch, see source-aliases for getting lastest")
+        parser.add_argument("-u", "--userdata", required=False, default=SUPPRESS, help="path to optional userdata file")
+        return None
 
     @classmethod
     def parser_arguments(self, subparser: ArgumentParser) -> None:
         """required cli arguments, as well as allowed overrides"""
-        # 'really good' argparse example at community vmware https://github.com/vmware/pyvmomi-community-samples/blob/master/samples/tools/cli.py
-        def qh_add_all(mu_arg_group: ArgumentParser) -> None:
-            """Required arguments for any `aws` command"""
-            mu_arg_group.add_argument("-n", "--app-name", required=True, help="Name the group of hosts you're creating (remember, there is no state!)")
-        def qh_add_make(mu_arg_group: ArgumentParser) -> None:
-            """arguments for `aws make`"""
-            mu_arg_group.add_argument("--vpc-id", required=False, default=SUPPRESS, help="specify a VpcId to choose the vpc in which to launch hosts")
-            mu_arg_group.add_argument("--subnet-id", required=False, default=SUPPRESS, help="specify a SubnetId to choose the subnet in which to launch hosts")
-            mu_arg_group.add_argument("-c", "--host-count", required=False, default=1, help="number of hosts to create")
-            mu_arg_group.add_argument("--ssh-key-filepath", required=False, default=SUPPRESS, help="download newly created key to target file (default is APP_NAME.pem in cwd)")
-        def qh_add_describe(arg_group: ArgumentParser) -> None:
-            """arguments for `aws describe`"""
-            pass
-        def qh_add_update(arg_group: ArgumentParser) -> None:
-            """arguments for `aws update`"""
-            pass
-        def qh_add_destroy(mu_arg_group: ArgumentParser) -> None:
-            """arguments for `aws destroy`"""
-            pass
-        def qh_add_make_update(mu_arg_group: ArgumentParser) -> None:
-            """arguments for either `aws make` or `aws update`"""
-            mu_arg_group.add_argument("-y", "--dry-run", required=False, action='store_true', help="prevents any resource creation when set")
-            mu_arg_group.add_argument("-p", "--port", required=False, type=int, action='append', default=SUPPRESS, help="add an open tcp port to security group, applied to all ips")
-            mu_arg_group.add_argument("--ip", required=False, action='append', help="additional ipv4 to allow through security group. all ports specified with '--port' are applied to all ips specified with --ip if a cidr is not included, it is assumed to be /32")
-            mu_arg_group.add_argument("--instance-type", required=False, default="t2.micro", help="change the type of instance to launch")
-            mu_arg_group.add_argument("--ami", required=False, default=SUPPRESS, help="change the ami to launch, see source-aliases for getting lastest")
-            mu_arg_group.add_argument("-u", "--userdata", required=False, default=SUPPRESS, help="path to optional userdata file")
-
-        # cli crud
-        qh_main = subparser.add_subparsers()
-        qhmake = qh_main.add_parser("make")
-        qhdescribe = qh_main.add_parser("describe")
-        qhupdate = qh_main.add_parser("update")
-        qhdestroy = qh_main.add_parser("destroy")
-
-        ### jankiness spotted? need to make a custom arg for each parser, so we can tell the difference after parser.parse_args() is called.
-        qhmake.set_defaults(__qhaction="make")
-        qhdescribe.set_defaults(__qhaction="describe")
-        qhupdate.set_defaults(__qhaction="update")
-        qhdestroy.set_defaults(__qhaction="destroy")
-        ###
-
-        ### add args
-        qh_add_all(qhmake)
-        qh_add_all(qhdescribe)
-        qh_add_all(qhupdate)
-        qh_add_all(qhdestroy)
-
-        qh_add_make(qhmake)
-        qh_add_update(qhupdate)
-        qh_add_describe(qhdescribe)
-        qh_add_destroy(qhdestroy)
-
-        qh_add_make_update(qhmake)
-        qh_add_make_update(qhupdate)
-        ###
-    # end of parser_arguments()
-
+        pass
+    
     def run(self, args: dict):
         """
         eats a user's input from the CLI 'form' that parser_arguments() sets up. 

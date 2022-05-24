@@ -11,22 +11,8 @@ from .constants import *
 
 logger = logging.getLogger(__name__)
 
-"""
-perhaps the most useless of modules*
-"""
 
 class AppConfigFileParser(configparser.ConfigParser):
-    """
-    example config file:
-    [aws:_all]
-    key_name = my-ec2-key
-    vpc_id = vpc-1234
-    subnet_id = subnet-23414516134
-
-    [aws:app1]
-    # apps override '_all'
-    key_name = my-special-app-key
-    """
     def __init__(self):
         super().__init__(allow_no_value=True)
 
