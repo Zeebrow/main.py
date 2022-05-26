@@ -5,7 +5,7 @@ from tempfile import mkstemp
 import os, sys
 
 from botocore.exceptions import ClientError
-#epiphany for if name=main
+
 try:
     from .constants import *
 except:

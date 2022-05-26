@@ -5,22 +5,7 @@ from os import get_terminal_size
 import logging
 import configparser
 from pathlib import Path
-
-from quickhost import AWSApp
-
-# # this
-# 
-# very clear order of operations:
-# 1. look up app name in config
-# 2. get cloud provider/load plugin
-# 3? call plugin parser_arguments()
-# 4. parser.parse_args() and run()
-#
-# - load plugin given in ini section name (e.g. [myapp:aws]) or variable name (e.g. AWS_VAR_NAME='asdf' under section [myapp])
-# problem: cli params are stored in App instance 'attributes' (all the self.shit)
-#  - solution A) main.py singleton
-#  - solution B) (oh fug) per-plugin configuration class
-#  - solution C) literally dict() and give to called plugin
+import importlib
 
 DEFAULT_CONFIG_FILEPATH = str(Path("/opt/etc/quickhost/quickhost.conf").absolute())
 
@@ -37,7 +22,10 @@ class AppConfigFileParser(configparser.ConfigParser):
 
 def load_plugin(hosting_provider: str):
     """step 3 load plugin, Somehow™ """
-    return AWSApp
+    try:
+        importlib.import_module
+
+    return NewApp
 
 def app_parser_pass_1():
     parser = argparse.ArgumentParser(description="make easily managed hosts, quickly")

@@ -17,7 +17,8 @@ usage: main.py [-h] [-f CONFIG_FILE] {make,describe,update,destroy} ... app_name
 
 ## ~~TODO~~ want
 
-[ ] TODO tracker
+[ ] TODO tracker (whatever u want, champ)
+[ ] whitelist/blacklist
 [ ] hand-hold setup
 [ ] cost helper
 [ ] bash completion
