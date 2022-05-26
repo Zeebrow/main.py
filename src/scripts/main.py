@@ -68,6 +68,9 @@ def app_parser_pass_2():
     config_parser.read(_cfg_file)
     # step 2 - infer 'aws' 
     for a in config_parser.sections():
+        if ':' not in a:
+            # not my yob
+            continue
         an,hp = a.split(':')
         if an == app_args['app_name']:
             app_config = config_parser[f"{app_args['app_name']}:{hp}"]

@@ -55,7 +55,7 @@ class AWSApp(AppBase):
         self.load_default_config()
 
     def _all_cfg_key(self):
-        return f'_all:{self._cli_parser_id}'
+        return f'{self._cli_parser_id}:all'
     def _app_cfg_key(self):
         return f'{self.app_name}:{self._cli_parser_id}'
     def load_default_config(self):
