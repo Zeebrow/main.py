@@ -5,24 +5,9 @@ from os import get_terminal_size
 import logging
 import configparser
 from pathlib import Path
-import importlib
-
 from importlib import metadata
-###
-alleps = metadata.entry_points()
-for k,v in alleps.items():
-    print(f"{k}: {v}")
-    print()
-eps = metadata.entry_points()['quickhost_plugin']
-print('---------')
-print(eps)
-for ep in eps:
-    print(ep)
-    plugin = ep.load()
-    app = plugin.get_app()
-print('---------')
-exit()
-###
+# TODO: move AppBase back, and have plugins import quickhost
+
 
 DEFAULT_CONFIG_FILEPATH = str(Path("/opt/etc/quickhost/quickhost.conf").absolute())
 
@@ -37,18 +22,15 @@ class AppConfigFileParser(configparser.ConfigParser):
     def __init__(self):
         super().__init__(allow_no_value=True)
 
+
 def load_plugin(tgt_module: str):
     """step 3 load plugin, Somehow™ """
-    print(f"=======> {tgt_module}")
-    tgt_module_name = f"quickhost_{tgt_module}"
-    m = importlib.import_module("quickhost_aws")
-    print(sys.modules.keys())
-    if f"quickhost_{tgt_module_name}" not in sys.modules.keys():
-        raise ImportError(f"No such modules '{tgt_module_name}' - install it with 'pip install {tgt_module_name}'")
-    else:
-        m = importlib.import_module(tgt_module_name)
-        return m.App
-    raise ImportError(f"Could not load required plugin for '{tgt_module}'")
+    available_plugins = metadata.entry_points()['quickhost_plugin']
+    for plugin in available_plugins:
+        if plugin.name == f"quickhost_{tgt_module}":
+            return plugin.load()
+#            plugin = ep.load()
+#            app = plugin()
 
 
 def app_parser_pass_1():
@@ -87,7 +69,9 @@ def app_parser_pass_2():
         if tgt_app_name == app_args['app_name']:
             app_config = config_parser[f"{app_args['app_name']}:{tgt_plugin}"]
             # step 3 load plugin
-            app = load_plugin(tgt_plugin)(app_args['app_name'], config_file=_cfg_file)
+            app = load_plugin(tgt_plugin)()(app_args['app_name'], config_file=_cfg_file)
+            print(app)
+            return app, app_parser
             # ...
         # ...
 

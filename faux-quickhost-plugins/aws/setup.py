@@ -1,17 +1,18 @@
 from setuptools import setup, find_packages
 
-print(f"setup.py=====> {find_packages(where='src/quickhost_aws')}")
-
 setup(
-    name='quickhost_aws',
+    # the Distribution Name for the package
+    # https://packaging.python.org/en/latest/glossary/#term-Distribution-Package
+    name='quickhost-aws', 
     version='0.0.1',
-    package_dir={'quickhost_aws':'aws/src/quickhost_aws'},
-    packages=find_packages(where='src/quickhost_aws'),
+    package_dir={'':'src'},
+    packages=find_packages(where='src'),
     install_requires=[
-        'boto3'
+        'boto3',
+        'quickhost'
     ],
     #depends_on=
     entry_points={
-        "quickhost_plugin": ['quickhost_aws=quickhost_aws:get_app']
+        "quickhost_plugin": ['quickhost_aws=quickhost_aws:load_plugin']
     }
 )
