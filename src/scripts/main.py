@@ -25,7 +25,11 @@ class AppConfigFileParser(configparser.ConfigParser):
 
 def load_plugin(tgt_module: str):
     """step 3 load plugin, Somehow™ """
-    available_plugins = metadata.entry_points()['quickhost_plugin']
+    try:
+        available_plugins = metadata.entry_points()['quickhost_plugin']
+    except KeyError:
+        logger.error(f"No suitable plugin found for '{tgt_module}'. You might install it by running `pip install quickhost-{tgt_module}`.")
+        exit(1)
     for plugin in available_plugins:
         if plugin.name == f"quickhost_{tgt_module}":
             return plugin.load()
