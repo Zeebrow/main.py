@@ -4,21 +4,28 @@ Make a publically accessible host, quickly.
 
 ## Usage
 
-`quickhost` is a plugin-driven program.
-
-To use quickhost, you will also need a plugin for the cloud/hosting provider
-you wish to use (AWS is free ;)
-
-### AWS
-
 ```
 usage: main.py [-h] [-f CONFIG_FILE] {make,describe,update,destroy} ... app_name
 ```
 
+`quickhost` is still under development. Only aws is supported as a cloud
+provider option.
+
+```
+git clone https://github.com/zeebrow/quickhost.git
+git clone https://github.com/zeebrow/quickhost-plugins.git
+python3 -m venv venv && source venv/bin/activate
+pip install -e quickhost
+pip install -e quickhost-plugins/plugins/aws
+```
+
+See the aws plugin [README.md](https://github.com/zeebrow/quickhost-plugins/plugins/aws/README.md) 
+for help setting up an aws account and boilerplate cloud resources.
+
 ## ~~TODO~~ want
 
-[ ] TODO tracker (whatever u want, champ)
-[ ] whitelist/blacklist
-[ ] hand-hold setup
+[ ] zero reliance on aws cli
+  * IAM
+  * VPC/Subnet
 [ ] cost helper
 [ ] bash completion

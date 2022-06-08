@@ -44,32 +44,35 @@ class AppBase(metaclass=ABCMeta):
         """modify main ArgumentParser to accept arguments required by plugin"""
         pass
 
+    @abstractmethod
+    def plugin_init():
+        """Account setup, networking, etc. required to use plugin"""
+        pass
+
 # maybe all crud's should exit instead of return
     @abstractmethod
     def create(self):
         """
-        do the needful to get app up
-        should promptly exit after returning
+        Start hosts
         """
         pass
 
     @abstractmethod
     def describe(self) -> dict:
-        """return information about resources in the target app"""
+        """return information about hosts in the target app"""
         pass
 
     @abstractmethod
     def update(self):
-        """change the app in some way"""
+        """change the hosts in some way"""
         pass
         
     @abstractmethod
     def destroy(self):
-        """
-        delete all resources associated with your app
-        should promptly exit after returning
-        """
+        """ delete all hosts associated with your app """
         pass
+
+
         
 class QuickhostApp(metaclass=ABCMeta):
     def __init__(self):
