@@ -9,12 +9,12 @@ from importlib import metadata
 # TODO: move AppBase back, and have plugins import quickhost
 
 
-DEFAULT_CONFIG_FILEPATH = str(Path("/opt/etc/quickhost/quickhost.conf").absolute())
+DEFAULT_CONFIG_FILEPATH = str(Path().home() / ".local/etc/quickhost.conf")
 
 logger = logging.getLogger()
 
 fmt='%(asctime)s : %(name)s : %(funcName)s : %(levelname)s: %(message)s'
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 sh = logging.StreamHandler()
 logger.addHandler(sh)
 
@@ -27,15 +27,20 @@ def load_plugin(tgt_module: str):
     try:
         available_plugins = metadata.entry_points()['quickhost_plugin']
     except KeyError:
-        logger.error(f"No suitable plugin found for '{tgt_module}'. You might install it by running `pip install quickhost-{tgt_module}`.")
-        exit(1)
+        logger.error(f"No quickhost plugins are installed")
     for plugin in available_plugins:
+        logger.debug(f"+++> {plugin}")
+        logger.debug(f"+++> {plugin.name}")
         if plugin.name == f"quickhost_{tgt_module}":
-            return plugin.load()
+            app = plugin.load()()
+            logger.debug(plugin._asdict())
+            logger.debug(type(app))
+            #return plugin.load()
+            return app
 #            plugin = ep.load()
 #            app = plugin()
 
-def app_parser_pass_1():
+def get_main_parser():
     parser = argparse.ArgumentParser(description="make easily managed hosts, quickly")
     # aah im gonna hate this
     parser.add_argument("-f", "--config-file", required=False, default=argparse.SUPPRESS, help="Use an alternative configuration file to override the default.")
@@ -48,43 +53,47 @@ def app_parser_pass_1():
     parser.add_argument("app_name", default=argparse.SUPPRESS, help="app name")
     return parser
 
-def app_parser_pass_2():
-    app_parser = app_parser_pass_1()
+def get_app():
+    app_parser = get_main_parser()
     if len(sys.argv) == 1:
-        print('helo')
+        app_parser.print_help()
+        exit(1)
+    app_args = vars(app_parser.parse_args())
+    print(f"{app_args=}")
+    if not 'app_name' in app_args.keys():
+        app_parser.print_usage()
         exit(1)
 
-    app_args = vars(app_parser.parse_args())
     config_parser = AppConfigFileParser()
     _cfg_file = DEFAULT_CONFIG_FILEPATH 
     if 'config_file' in app_args.keys():
         _cfg_file = app_args['config_file']
     config_parser.read(_cfg_file)
 
-    if app_args['__qhaction'] == 'init':
-        app = load_plugin(app_args['app_name'])()(app_args['app_name'], config_file=_cfg_file)
+    tgt_plugin_name = None
+    for sec in config_parser.sections():
+        if app_args['app_name'] in sec:
+            tgt_plugin_name = sec.split(":")[1]
+            break
+    app_config = config_parser[f"{app_args['app_name']}:{tgt_plugin_name}"]
+    app = load_plugin(tgt_plugin_name)(app_args['app_name'], config_file=_cfg_file)
+
+    action = app_args['__qhaction']
+    if action == 'init':
+        #app = load_plugin(tgt_plugin_name)(app_args['app_name'], config_file=_cfg_file)
         return app, app_parser
-
-    # step 2 - infer 'aws' 
-    for a in config_parser.sections():
-        if ':' not in a:
-            # not my yob
-            continue
-        tgt_app_name,tgt_plugin = a.split(':')
-        if tgt_app_name == app_args['app_name']:
-            app_config = config_parser[f"{app_args['app_name']}:{tgt_plugin}"]
-            # step 3 load plugin
-            app = load_plugin(tgt_plugin)()(app_args['app_name'], config_file=_cfg_file)
-            return app, app_parser
-
-    if app_args['__qhaction'] == 'make':
+    elif action == 'make':
         app.make_parser_arguments(app_parser)
-    return app, app_parser
+        return app, app_parser
+    else:
+        logger.error(f"No such action '{action}'")
+        exit(1)
+    return None, None
 
-app, parser = app_parser_pass_2()
+app, parser = get_app()
 args = vars(parser.parse_args())
 print(args)
-app.run(args)
+app.run(args=args)
 
 exit()
 
