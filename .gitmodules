@@ -1,0 +1,3 @@
+[submodule "plugins/quickhost-plugins"]
+	path = plugins/quickhost-plugins
+	url = https://github.com/zeebrow/quickhost-plugins.git

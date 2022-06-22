@@ -5,33 +5,20 @@ from abc import ABCMeta, abstractmethod
 import configparser
 import logging
 from os import get_terminal_size
+from pathlib import Path
 
 from .utilities import get_my_public_ip
-from .constants import *
+from .constants import APP_CONST as C
 
 logger = logging.getLogger(__name__)
 
-"""
-perhaps the most useless of modules*
-"""
 
 class AppConfigFileParser(configparser.ConfigParser):
-    """
-    example config file:
-    [aws:_all]
-    key_name = my-ec2-key
-    vpc_id = vpc-1234
-    subnet_id = subnet-23414516134
-
-    [aws:app1]
-    # apps override '_all'
-    key_name = my-special-app-key
-    """
     def __init__(self):
         super().__init__(allow_no_value=True)
 
 class AppBase(metaclass=ABCMeta):
-    def __init__(self, _cli_parser_id: str, app_name: str, config_file=DEFAULT_CONFIG_FILEPATH):
+    def __init__(self, _cli_parser_id: str, app_name: str, config_file=C.DEFAULT_CONFIG_FILEPATH):
         """should there actually be logic here? in the same vain, more than just primitive data types?"""
         self._cli_parser_id = _cli_parser_id
         self.app_name = app_name
@@ -47,7 +34,7 @@ class AppBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def run(self):
+    def run():
         """get remaining config from argparse namespace"""
         pass
 
@@ -57,32 +44,35 @@ class AppBase(metaclass=ABCMeta):
         """modify main ArgumentParser to accept arguments required by plugin"""
         pass
 
+    @abstractmethod
+    def plugin_init():
+        """Account setup, networking, etc. required to use plugin"""
+        pass
+
 # maybe all crud's should exit instead of return
     @abstractmethod
     def create(self):
         """
-        do the needful to get app up
-        should promptly exit after returning
+        Start hosts
         """
         pass
 
     @abstractmethod
     def describe(self) -> dict:
-        """return information about resources in the target app"""
+        """return information about hosts in the target app"""
         pass
 
     @abstractmethod
     def update(self):
-        """change the app in some way"""
+        """change the hosts in some way"""
         pass
         
     @abstractmethod
     def destroy(self):
-        """
-        delete all resources associated with your app
-        should promptly exit after returning
-        """
+        """ delete all hosts associated with your app """
         pass
+
+
         
 class QuickhostApp(metaclass=ABCMeta):
     def __init__(self):
