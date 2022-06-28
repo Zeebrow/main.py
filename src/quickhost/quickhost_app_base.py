@@ -34,7 +34,7 @@ class AppBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def run():
+    def run(self):
         """get remaining config from argparse namespace"""
         pass
 

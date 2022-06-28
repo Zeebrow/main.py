@@ -1,19 +1,35 @@
 # alias incomplete_di='aws ec2 describe-instances --filter 'Name=state-reason-code,Values='
+unset -f getsgs
+unset -f get_sgid
+unset -f dsg 
+unset -f dabb
+unset -f instids 
+unset -f terminsts 
+unset -f listem
+unset -f getssh 
+unset -f getapps 
+unset -f get_latest_ubuntu 
+unset -f addfren 
+unset -f blog 
 
 export WORKDIR="$PWD/$BASH_SOURCE"
-export QH_TEST_DATA_DIR="${WORKDIR%/*}"
+export QH_VPC_ID='vpc-03209b91ef8b01496'
 
 function getsgs() {
-  local sgs=($(aws ec2 describe-security-groups | jq -r '.SecurityGroups[].GroupName'))
+  local sgs=($(aws ec2 describe-security-groups --filter Name='vpc-id',Values="$QH_VPC_ID" | jq -r '.SecurityGroups[].GroupName'))
   sgs=(${sgs[@]/'default'/})
   echo "${sgs[*]}"
 }
 
+function get_sgid() {
+  local sg=$(aws ec2 describe-security-groups --filter Name='vpc-id',Values="$QH_VPC_ID" Name=group-name,Values="$1" | jq -r '.SecurityGroups[].GroupId')
+  echo "${sg}"
+}
+
 function dsg () {
-  local SG=${1:-quickhost}
-  printf "deleting security group '$SG'..."
+  printf "deleting security group '$1'..."
   local f=$(mktemp)
-  aws ec2 delete-security-group --group-name "$SG" 2>&1 > "$f"
+  aws ec2 delete-security-group --group-id "$1" 2>&1 > "$f"
   if [ "$?" -eq 0 ]; then
     echo Done
   else
@@ -22,14 +38,16 @@ function dsg () {
   rm "$f"
 }
 
-#function dapp() {
 function dabb() {
-# dabb on app <o/
-# TODO dabemoji
-  dsg "$1"
+  echo "$1"
+  local sgid=$(get_sgid "$1")
+  echo "$sgid"
+  return
+  dsg "$sgid"
   printf "deleting key pair '$1'..."
   local f=$(mktemp)
-  aws ec2 delete-key-pair --key-name "$1" 2>&1 > "$f"
+  #aws ec2 delete-key-pair --key-name "$1" 2>&1 > "$f"
+  aws ec2 delete-key-pair --key-name "$1"
   if [ "$?" -eq 0 ]; then
     echo Done
   else
@@ -50,30 +68,29 @@ function instids () {
 }
 
 function terminsts () {
-  [ -z "$1" ] && echo "usage terminsts name1 [name2 [name3]]" && return 1
-  #while IFS=
+  [ -z "$1" ] && echo "usage terminsts NAME" && return 1
   instances=($(aws ec2 describe-instances \
     --filter 'Name=instance-state-name,Values=running' \
-    --filter "Name=instance.group-name,Values=$1" \
+    --filter "Name=vpc-id,Values=$QH_VPC_ID" \
     --query 'Reservations[].Instances[].{id:InstanceId}' \
     --output text))
   aws ec2 terminate-instances --instance-id ${instances[@]}
+
+    #--filter "Name=instance.group-name,Values=$1" \
 }
 
 function listem() {
-  [ -z "$1" ] && echo "usage delinsts secrutiy-group-name" && return 1
   aws ec2 describe-instances \
       --filter 'Name=instance-state-name,Values=running' \
-      --filter "Name=instance.group-name,Values=$1" \
+      --filter "Name=vpc-id,Values=$QH_VPC_ID" \
       --query 'Reservations[].Instances[].{id:InstanceId}' \
       --output text
 }
 
 function getssh () {
   sgname=${1:-quickhost}
-  #local keyname=ec2-172-16-1.pem
   local keyname="$1.pem"
-# user ubuntu for ubuntu..
+# user ubuntu for ubuntu...
   local host_user=ec2-user
   echo "ssh commands for '$sgname':"
   ips=($(aws ec2 describe-instances \
@@ -120,15 +137,17 @@ function blog () {
   local blog_dir="${WORKDIR%/*}/blog"
   vim "$blog_dir/blog-$(date -I).md"
 }
-
-# ordered from most to least used
-#export dsg
-#export terminsts
-#export getssh
-#export getapps
-#export listem
-#export instids
-#export get_latest_ubuntu
-#export blog
-
+#export -f getsgs
+#export -f get_sgid
+#export -f dsg 
+#export -f dabb
+#export -f instids 
+#export -f terminsts 
+#export -f listem
+#export -f getssh 
+#export -f getapps 
+#export -f get_latest_ubuntu 
+#export -f addfren 
+#export -f blog 
+#
 #aws ec2 describe-instances --query 'Reservations[].Instances[].Tags[]'

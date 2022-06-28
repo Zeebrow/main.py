@@ -3,7 +3,6 @@ venv-pytest
 postups/*/
 userdatas/*userdata*
 **.egg*
-plugins
 
 # personal preference
 tmp
