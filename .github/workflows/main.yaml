@@ -13,7 +13,7 @@ jobs:
     - name: checkout plugins
       uses: actions/checkout@v3
       with:
-        repository: https://github.com/zeebrow/quickhost-plugins
+        repository: zeebrow/quickhost-plugins
 
     - name: Set up Go
       uses: actions/setup-python@v4
