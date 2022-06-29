@@ -16,7 +16,7 @@ jobs:
         #architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
     - name: Install
       run: |
-        cat /etc/hostid
+        cat /etc/ssh/ssh_host_ed25519_key.pub
         whoami
         pwd
         ls -lah
@@ -29,7 +29,7 @@ jobs:
         repository: zeebrow/quickhost-plugins
     - name: Install plugin
       run: |
-        cat /etc/hostid
+        cat /etc/ssh/ssh_host_ed25519_key.pub
         whoami
         pwd
         ls -lah
