@@ -14,7 +14,6 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: zeebrow/quickhost-plugins
-        path: '../quickhost-plugins'
 
     - uses: actions/setup-python@v4
       with:
@@ -27,5 +26,5 @@ jobs:
         ls -lah
         pip install -r requirements.txt
         pip install -e .
-        pip install -e ../quickhost-plugins/plugins/quickhost-plugins/aws
+        pip install -e quickhost-plugins/plugins/quickhost-plugins/aws
 
