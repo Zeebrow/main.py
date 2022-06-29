@@ -16,6 +16,7 @@ jobs:
         #architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
     - name: Install
       run: |
+        # just using this to make sure steps run on the same host!
         cat /etc/ssh/ssh_host_ed25519_key.pub
         whoami
         pwd
@@ -33,6 +34,5 @@ jobs:
         whoami
         pwd
         ls -lah
-        pip install -r requirements.txt
         pip install -e quickhost-plugins/plugins/quickhost-plugins/aws
 
