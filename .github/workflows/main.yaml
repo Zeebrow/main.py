@@ -10,21 +10,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: checkout plugins
-      uses: actions/checkout@v3
-      with:
-        repository: zeebrow/quickhost-plugins
-
     - uses: actions/setup-python@v4
       with:
         python-version: '3.7' # semver syntax
         #architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
     - name: Install
       run: |
+        cat /etc/pki/fwupd/LVFS-CA.pem
         whoami
         pwd
         ls -lah
         pip install -r requirements.txt
         pip install -e .
+
+    - name: checkout plugins
+      uses: actions/checkout@v3
+      with:
+        repository: zeebrow/quickhost-plugins
+    - name: Install plugin
+      run: |
+        cat /etc/pki/fwupd/LVFS-CA.pem
+        whoami
+        pwd
+        ls -lah
+        pip install -r requirements.txt
         pip install -e quickhost-plugins/plugins/quickhost-plugins/aws
 
