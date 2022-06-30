@@ -1,0 +1,40 @@
+on:
+  push:
+    branches:
+      - 'release/**'
+env:
+  AWS_SESSION_NAME: gh-action-quickhost
+  AWS_REGION: us-east-1
+  AWS_QH_ROLE_ARN: 
+
+jobs:
+  build-linux-amd64:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.7'
+        architecture: 'x64'
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: ${{ env.AWS_REGION }}
+        role-to-assume: ${{ env.AWS_QH_ROLE_ARN }}
+        role-session-name: ${{ env.AWS_SESSION_NAME }}
+
+    - name: Install quickhost
+      run : |
+        pip install -e .
+
+    - name: Install plugins
+      uses: actions/checkout@v2
+      with:
+        path: quickhost-plugins
+        repo: 'zeebrow/quickhost-plugins'
+      run: |
+        pip install -e quickhost-plugins/plugins/aws/

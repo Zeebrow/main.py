@@ -22,10 +22,3 @@ pip install -e quickhost-plugins/plugins/aws
 See the aws plugin [README.md](https://github.com/zeebrow/quickhost-plugins/plugins/aws/README.md) 
 for help setting up an aws account and boilerplate cloud resources.
 
-## ~~TODO~~ want
-
-[ ] zero reliance on aws cli
-  * IAM
-  * VPC/Subnet
-[ ] cost helper
-[ ] bash completion
