@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - 'release/**'
+      - 'master'
 env:
   AWS_SESSION_NAME: gh-action-quickhost
   AWS_REGION: us-east-1
@@ -27,7 +27,7 @@ jobs:
         role-to-assume: ${{ env.AWS_QH_ROLE_ARN }}
         role-session-name: ${{ env.AWS_SESSION_NAME }}
 
-    - name: Install quickhost
+    - name: Checkout quickhost
       run : |
         pip install -e .
 
@@ -36,5 +36,6 @@ jobs:
       with:
         path: quickhost-plugins
         repo: 'zeebrow/quickhost-plugins'
+    - name:  Install plugins
       run: |
         pip install -e quickhost-plugins/plugins/aws/
