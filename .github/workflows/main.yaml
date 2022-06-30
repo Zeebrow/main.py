@@ -40,4 +40,5 @@ jobs:
         ls -lah
         pip install -e quickhost-plugins/plugins/aws
     - name: run a command
+      run: echo fix for issue #420 console output appears truncated
 
