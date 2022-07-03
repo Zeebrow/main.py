@@ -9,7 +9,7 @@ from importlib import metadata
 import warnings
 # TODO: move AppBase back, and have plugins import quickhost
 
-from quickhost import AppBase, APP_CONST as C
+from quickhost import AppBase, APP_CONST as C, QHExit
 
 
 #DEFAULT_CONFIG_FILEPATH = str(Path().home() / ".local/etc/quickhost.conf")
@@ -34,10 +34,10 @@ def load_plugin(tgt_module: str):
     plugin = metadata.entry_points().select(name=f"quickhost_{tgt_module}")
     if len(list(plugin)) > 1:
         logger.error(f"Oops, this is a bug.\nIt appears you have two plugins named 'quickhost_{tgt_module}', perhaps try reinstalling them?")
-        sys.exit(1)
+        exit(QHExit.KNOWN_ISSUE)
     if list(plugin) == []:
         logger.error(f"No such plugin 'quickhost_{tgt_module}' is installed.")
-        sys.exit(1)
+        exit(QHExit.GENERAL_FAILURE)
     logger.debug(f"Found plugin '{plugin}'")
     app = tuple(plugin)[0].load()()
     return app
@@ -61,7 +61,7 @@ def get_app():
     cfg_file = C.DEFAULT_CONFIG_FILEPATH 
     if len(sys.argv) == 1:
         app_parser.print_help()
-        exit(1)
+        exit(QHExit.GENERAL_FAILURE)
     app_args = vars(app_parser.parse_args())
     app_name = app_args['app_name']
     action = app_args['__qhaction']
@@ -71,7 +71,7 @@ def get_app():
 
     if not 'app_name' in app_args.keys():
         app_parser.print_usage()
-        exit(1)
+        exit(QHExit.GENERAL_FAILURE)
 
     if action != 'init':
         for sec in config_parser.sections():
@@ -89,13 +89,13 @@ def get_app():
         app.make_parser_arguments(app_parser)
         return app, app_parser
     elif action == 'describe':
-        app.describe(app_parser)
+        app.describe_parser_arguments(app_args)
         return app, app_parser
     elif action == 'destroy':
         return app, app_parser
     else:
         logger.error(f"No such action '{action}'")
-        exit(1)
+        exit(QHExit.GENERAL_FAILURE)
     return None, None
 
 def main():
