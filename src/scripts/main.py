@@ -9,10 +9,10 @@ from importlib import metadata
 import warnings
 # TODO: move AppBase back, and have plugins import quickhost
 
-from quickhost import AppBase
+from quickhost import AppBase, APP_CONST as C
 
 
-DEFAULT_CONFIG_FILEPATH = str(Path().home() / ".local/etc/quickhost.conf")
+#DEFAULT_CONFIG_FILEPATH = str(Path().home() / ".local/etc/quickhost.conf")
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -58,7 +58,7 @@ def get_app():
     tgt_plugin_name = None
     app_parser = get_main_parser()
     config_parser = AppConfigFileParser()
-    cfg_file = DEFAULT_CONFIG_FILEPATH 
+    cfg_file = C.DEFAULT_CONFIG_FILEPATH 
     if len(sys.argv) == 1:
         app_parser.print_help()
         exit(1)
@@ -73,35 +73,38 @@ def get_app():
         app_parser.print_usage()
         exit(1)
 
-    if action == 'init':
+    if action != 'init':
+        for sec in config_parser.sections():
+            if app_name in sec:
+                tgt_plugin_name = sec.split(":")[1]
+                break
+        app = load_plugin(tgt_plugin_name)(app_name, config_file=cfg_file)
+    else:
         app = load_plugin(app_name)(app_name, config_file=cfg_file)
+
+    if action == 'init':
         app.init_parser_arguments(app_parser)
-        args = vars(app_parser.parse_args())
-        app.plugin_init(args)
-        exit(0)
-
-    for sec in config_parser.sections():
-        if app_name in sec:
-            tgt_plugin_name = sec.split(":")[1]
-            break
-    app_config = config_parser[f"{app_name}:{tgt_plugin_name}"]
-    app = load_plugin(tgt_plugin_name)(app_name, config_file=cfg_file)
-
-    if action == 'make':
+        return app, app_parser
+    elif action == 'make':
         app.make_parser_arguments(app_parser)
         return app, app_parser
     elif action == 'describe':
         app.describe(app_parser)
+        return app, app_parser
+    elif action == 'destroy':
         return app, app_parser
     else:
         logger.error(f"No such action '{action}'")
         exit(1)
     return None, None
 
-app, parser = get_app()
-args = vars(parser.parse_args())
-print(args)
-app.run(args=args)
+def main():
+    exit_code = 0
+    app, parser = get_app()
+    args = vars(parser.parse_args())
+    print(f"args before calling app.run: {args}")
+    app.run(args=args)
+    return exit_code
 
-exit()
-
+# HNG
+exit(main())

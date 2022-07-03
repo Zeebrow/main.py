@@ -49,7 +49,6 @@ class AppBase(metaclass=ABCMeta):
         """Account setup, networking, etc. required to use plugin"""
         pass
 
-# maybe all crud's should exit instead of return
     @abstractmethod
     def create(self):
         """
@@ -70,19 +69,4 @@ class AppBase(metaclass=ABCMeta):
     @abstractmethod
     def destroy(self):
         """ delete all hosts associated with your app """
-        pass
-
-
-        
-class QuickhostApp(metaclass=ABCMeta):
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def parser_arguments(self, subparser: any) -> None:
-        """Add required arguments to a parser"""
-        pass
-
-    @abstractmethod
-    def _print_loaded_args(self) -> None:
         pass
