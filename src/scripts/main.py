@@ -9,7 +9,7 @@ from importlib import metadata
 import warnings
 # TODO: move AppBase back, and have plugins import quickhost
 
-from quickhost import AppBase, APP_CONST as C, QHExit
+from quickhost import AppBase, APP_CONST as C, QHExit, QHPlugin
 
 
 #DEFAULT_CONFIG_FILEPATH = str(Path().home() / ".local/etc/quickhost.conf")
@@ -29,8 +29,11 @@ class AppConfigFileParser(configparser.ConfigParser):
     def __init__(self):
         super().__init__(allow_no_value=True)
 
-def load_plugin(tgt_module: str):
-    """step 3 load plugin, Somehow™ """
+def load_all_plugins():
+    #note this is to remove the need for app_name from the main parser. it shouldn't need to care.
+    return metadata.entry_points().select(group="quickhost_plugin")
+
+def _load_plugin(tgt_module: str):
     plugin = metadata.entry_points().select(name=f"quickhost_{tgt_module}")
     if len(list(plugin)) > 1:
         logger.error(f"Oops, this is a bug.\nIt appears you have two plugins named 'quickhost_{tgt_module}', perhaps try reinstalling them?")
@@ -42,49 +45,134 @@ def load_plugin(tgt_module: str):
     app = tuple(plugin)[0].load()()
     return app
 
-def get_main_parser():
-    parser = argparse.ArgumentParser(description="make easily managed hosts, quickly")
-    parser.add_argument("-f", "--config-file", required=False, default=argparse.SUPPRESS, help="Use an alternative configuration file to override the default.")
-    qh_main = parser.add_subparsers()
-    qhinit      = qh_main.add_parser("init").set_defaults(__qhaction="init")
-    qhmake      = qh_main.add_parser("make").set_defaults(__qhaction="make")
-    qhdescribe  = qh_main.add_parser("describe").set_defaults(__qhaction="describe")
-    qhupdate    = qh_main.add_parser("update").set_defaults(__qhaction="update")
-    qhdestroy   = qh_main.add_parser("destroy").set_defaults(__qhaction="destroy")
-    parser.add_argument("app_name", default=argparse.SUPPRESS, help="app name")
-    return parser
+def load_plugin(tgt_module: str):
+    plugin = metadata.entry_points().select(name=f"quickhost_{tgt_module}")
+    if list(plugin) == []:
+        logger.error(f"No such plugin 'quickhost_{tgt_module}' is installed.")
+        exit(QHExit.GENERAL_FAILURE)
+    logger.debug(f"Found plugin '{plugin}'")
+    app_class = tuple(plugin)[0].load()
+    return app_class
 
 def get_app():
+######################################################################################3
+# main ArgumentParser
+######################################################################################3
+    app_parser = argparse.ArgumentParser(description="make easily managed hosts, quickly")
+    #app_parser.add_argument("-f", "--config-file", required=False, default=argparse.SUPPRESS, help="Use an alternative configuration file to override the default.")
+    app_parser.add_argument("-f", "--config-file", required=False, help="Use an alternative configuration file to override the default.")
+    qh_main = app_parser.add_subparsers()
+    qhinit      = qh_main.add_parser("init")
+    qhinit.set_defaults(__qhaction="init")
+    qhmake      = qh_main.add_parser("make")
+    qhmake.set_defaults(__qhaction="make")
+    qhdescribe  = qh_main.add_parser("describe")
+    qhdescribe.set_defaults(__qhaction="describe")
+    qhupdate    = qh_main.add_parser("update")
+    qhupdate.set_defaults(__qhaction="update")
+    qhdestroy   = qh_main.add_parser("destroy")
+    qhdestroy.set_defaults(__qhaction="destroy")
+
+    # place to store non-main cli args
+    action_ns = argparse.Namespace()
+
+######################################################################################3
+# handle plugins
+######################################################################################3
+    # get a list of all available plugins 
+    apps = []
+    plugins = QHPlugin.load_all_plugins()
+    for p in plugins:
+        apps.append(p.load()(qhinit))
+    _args = app_parser.parse_known_args()
+    cli_args = vars(_args[0])
+    action_cli_args = _args[1]
+    print(f"{cli_args=}")
+    print(f"{action_cli_args=}")
+
+    action = cli_args['__qhaction']
+    config_file  = cli_args['config_file']
+    #determine which plugin to use to create an instance of AppBase
+    tgt_plugin = None
+    if action == 'init':
+        # find the plugin that was specified on the cli
+        for k,v in cli_args.items():
+            if k.startswith('plugin_') and v == True:
+                tgt_plugin = k.split('_')[1]
+                break
+        logger.debug(f"{tgt_plugin=}")
+        load = QHPlugin.load_plugin(tgt_plugin)#(app_name, config_file=cfg_file)
+        app_class = load(app_parser)
+        app = app_class
+    else:
+        # find the plugin based on the app name
+        logger.debug('Notimplemented')
+        exit(QHExit.KNOWN_ISSUE)
+
+######################################################################################3
+# parse action's arguments
+######################################################################################3
+    if action == 'init':
+        app_name = tgt_plugin
+        print("==========making instance of app")
+        app = app_class(app_name, config_file) # done with app_name, config_file
+        print("==========call init_parser_arguments()")
+        init_parser = app.init_parser_arguments(qhinit, action_cli_args)
+        print("==========qhinit.parse_args()")
+        action_args = init_parser.parse_args(action_cli_args, namespace=action_ns)
+        print(action_args)
+        print("==========app.run()")
+        app.run_init(vars(action_args))
+        #app.run(args=vars(action_args))
+        exit()
+        return app, qhinit
+    elif action == 'make':
+        app.make_parser_arguments(app_parser)
+        return app, app_parser
+    elif action == 'describe':
+        app.describe_parser_arguments(app_args)
+        return app, app_parser
+    elif action == 'destroy':
+        return app, app_parser
+    else:
+        logger.error(f"No such action '{action}'")
+        exit(QHExit.GENERAL_FAILURE)
+    return None, None
+    app = app_class(app)
+    exit()
+
     tgt_plugin_name = None
-    app_parser = get_main_parser()
+    #app_parser = get_main_parser()
     config_parser = AppConfigFileParser()
     cfg_file = C.DEFAULT_CONFIG_FILEPATH 
     if len(sys.argv) == 1:
         app_parser.print_help()
         exit(QHExit.GENERAL_FAILURE)
-    app_args = vars(app_parser.parse_args())
+    #app_args = vars(app_parser.parse_args())
+    app_args = vars(app_parser.parse_known_args()[0])
     app_name = app_args['app_name']
     action = app_args['__qhaction']
     if 'config_file' in app_args.keys():
         cfg_file = app_args['config_file']
     config_parser.read(cfg_file)
 
-    if not 'app_name' in app_args.keys():
-        app_parser.print_usage()
-        exit(QHExit.GENERAL_FAILURE)
-
-    if action != 'init':
-        for sec in config_parser.sections():
-            if app_name in sec:
-                tgt_plugin_name = sec.split(":")[1]
-                break
-        app = load_plugin(tgt_plugin_name)(app_name, config_file=cfg_file)
-    else:
-        app = load_plugin(app_name)(app_name, config_file=cfg_file)
+#    if not 'app_name' in app_args.keys():
+#        app_parser.print_usage()
+#        exit(QHExit.GENERAL_FAILURE)
+#
+#    if action != 'init':
+#        for sec in config_parser.sections():
+#            if app_name in sec:
+#                tgt_plugin_name = sec.split(":")[1]
+#                break
+#        app = load_plugin(tgt_plugin_name)(app_name, config_file=cfg_file)
+#    else:
+#        app = load_plugin(app_name)(app_name, config_file=cfg_file)
 
     if action == 'init':
-        app.init_parser_arguments(app_parser)
-        return app, app_parser
+        #app.init_parser_arguments(app_parser)
+        app.init_parser_arguments(qhinit)
+        return app, qhinit
     elif action == 'make':
         app.make_parser_arguments(app_parser)
         return app, app_parser
