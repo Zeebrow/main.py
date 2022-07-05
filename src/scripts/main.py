@@ -104,10 +104,6 @@ def get_app():
         load = QHPlugin.load_plugin(tgt_plugin)#(app_name, config_file=cfg_file)
         app_class = load(app_parser)
         app = app_class
-    else:
-        # find the plugin based on the app name
-        logger.debug('Notimplemented')
-        exit(QHExit.KNOWN_ISSUE)
 
 ######################################################################################3
 # parse action's arguments
@@ -123,7 +119,6 @@ def get_app():
         print(action_args)
         print("==========app.run()")
         app.run_init(vars(action_args))
-        #app.run(args=vars(action_args))
         exit()
         return app, qhinit
     elif action == 'make':
