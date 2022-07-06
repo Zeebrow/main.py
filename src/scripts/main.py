@@ -79,66 +79,99 @@ def get_app():
 ######################################################################################3
 # handle plugins
 ######################################################################################3
-    # get a mapping of app_class from all available plugins 
+    #################################################################3
+    # tell the parser about the plugin
     plugins = QHPlugin.load_all_plugins()
     logger.debug(f"loaded {len(plugins.keys())} plugins")
-
-    # tell the parser about the plugin
     for plugin_name in plugins.keys():
         qhinit.add_argument(f"--{plugin_name}", action='store_true', dest=f"plugin_{plugin_name}")
+        #qhmake.add_argument(f"--{plugin_name}", action='store', dest=f"app_name")
 
+    #################################################################3
+    # find out if 'init' is the action.
     _args = app_parser.parse_known_args()
     cli_args = vars(_args[0])
+    logger.debug(f"first-pass {cli_args=}")
     action_cli_args = _args[1]
-    logger.debug(f"{cli_args=}")
-    logger.debug(f"{action_cli_args=}")
-
+    logger.debug(f"first-pass {action_cli_args=}")
     action = cli_args['__qhaction']
-    config_file  = cli_args['config_file']
-    
-    #determine which plugin to use to create an instance of AppBase
-    #the init action does not need any information other than the plugin
-    tgt_plugin = None
+    logger.debug(f"{action=}")
+
+    ##################################################################
+    # determine which plugin to use to create an instance of AppBase
+    # the parser cannot contain app_name if init is the desired action
+    # so we only add it after we know the action is anything other than.
+    tgt_init_plugin = None
     if action == 'init':
         # find the plugin that was specified on the cli
         for k,v in cli_args.items():
             if k.startswith('plugin_') and v == True:
-                tgt_plugin = k.split('_')[1]
+                tgt_init_plugin = k.split('_')[1]
                 break
-        logger.debug(f"{tgt_plugin=}")
-        load = QHPlugin.load_plugin(tgt_plugin)#(app_name, config_file=cfg_file)
-        #app_class = load(app_parser)
+        logger.debug(f"{tgt_init_plugin=}")
+        load = QHPlugin.load_plugin(tgt_init_plugin)#(app_name, config_file=cfg_file)
         app_class = load()
         app = app_class
     else:
+        #################################################################3
+        # re-parse the main command line to also grab the app name
+        # any arguments not recognized by the main parser will be
+        # passed to the action's parser.
+        app_parser.add_argument("app_name")
+        non_init_args = app_parser.parse_known_args()
+        #logger.debug(f"{non_init_args=}")
+        cli_args = vars(non_init_args[0])
+        action_cli_args = non_init_args[1]
+        logger.debug(f"second-pass {cli_args=}")
+        logger.debug(f"second-pass {action_cli_args=}")
+        action = cli_args['__qhaction']
+        config_file  = cli_args['config_file']
+        app_name = cli_args['app_name']
+
+        #non_init_args = app_parser.parse_known_args()[0]
+        # find the plugin from the app_name and config file
         app_config_parser = AppConfigFileParser()
         app_config_parser.read(C.DEFAULT_CONFIG_FILEPATH)
-        apps = []
-        #for s in app_config_parser.sections():
+        tgt_app_name = None
+        tgt_plugin_name = None
+        for sec_name in app_config_parser.sections():
+            if len(sec_name.split(":")) != 2:
+                logger.debug(f"Ignoring funny section '{sec_name}' in config file '{config_file}'")
+                continue
+            tgt_app_name,tgt_plugin_name = sec_name.split(":")
+            if tgt_app_name == app_name:
+                break
 
-
-
-
+        load = QHPlugin.load_plugin(tgt_plugin_name)#(app_name, config_file=cfg_file)
+        app_class = load()
+        app = app_class
+        app_name = cli_args['app_name']
+        config_file = cli_args['config_file']
+        action = cli_args['__qhaction']
 
 ######################################################################################3
 # parse action's arguments
 ######################################################################################3
     if action == 'init':
-        app_name = tgt_plugin
-        app = app_class(app_name, config_file)
+        app_name = tgt_init_plugin
+        app = app_class(app_name, config_file=None)
         init_parser = app.get_init_parser()
-        action_args = init_parser.parse_args(action_cli_args, namespace=action_ns)
+        #action_args = init_parser.parse_args(action_cli_args, namespace=action_ns)
+        action_args = init_parser.parse_args(action_cli_args)
         logger.debug(f"{action_args=}")
         app.run_init(vars(action_args))
         exit()
-        return app, qhinit
+        return (app, init_parser)
     elif action == 'make':
+        print(f"{action_cli_args=}")
+        app = app_class(app_name, config_file)
         make_parser = app.get_make_parser()
-        make_args = make_parser.parse_args(action_cli_args, namespace=action_ns)
-        print(make_args)
-        return
-        #app.make_parser_arguments(app_parser)
-        return app, app_parser
+        # error means an argument was not in make_parser arguments list
+        #make_args = make_parser.parse_args(action_cli_args, namespace=action_ns)
+        make_args = make_parser.parse_args(action_cli_args)
+        logger.debug(f"make_parser params: {make_args=}")
+        return app.run_make(vars(make_args))
+        return (app,make_parser) 
     elif action == 'describe':
         app.describe_parser_arguments(app_args)
         return app, app_parser
@@ -151,61 +184,13 @@ def get_app():
     app = app_class(app)
     exit()
 
-######################################################################################3
-# old code?
-######################################################################################3
-
-    tgt_plugin_name = None
-    #app_parser = get_main_parser()
-    config_parser = AppConfigFileParser()
-    cfg_file = C.DEFAULT_CONFIG_FILEPATH 
-    if len(sys.argv) == 1:
-        app_parser.print_help()
-        exit(QHExit.GENERAL_FAILURE)
-    #app_args = vars(app_parser.parse_args())
-    app_args = vars(app_parser.parse_known_args()[0])
-    app_name = app_args['app_name']
-    action = app_args['__qhaction']
-    if 'config_file' in app_args.keys():
-        cfg_file = app_args['config_file']
-    config_parser.read(cfg_file)
-
-#    if not 'app_name' in app_args.keys():
-#        app_parser.print_usage()
-#        exit(QHExit.GENERAL_FAILURE)
-#
-#    if action != 'init':
-#        for sec in config_parser.sections():
-#            if app_name in sec:
-#                tgt_plugin_name = sec.split(":")[1]
-#                break
-#        app = load_plugin(tgt_plugin_name)(app_name, config_file=cfg_file)
-#    else:
-#        app = load_plugin(app_name)(app_name, config_file=cfg_file)
-
-    if action == 'init':
-        #app.init_parser_arguments(app_parser)
-        app.init_parser_arguments(qhinit)
-        return app, qhinit
-    elif action == 'make':
-        app.make_parser_arguments(app_parser)
-        return app, app_parser
-    elif action == 'describe':
-        app.describe_parser_arguments(app_args)
-        return app, app_parser
-    elif action == 'destroy':
-        return app, app_parser
-    else:
-        logger.error(f"No such action '{action}'")
-        exit(QHExit.GENERAL_FAILURE)
-    return None, None
-
 def main():
     exit_code = 0
-    app, parser = get_app()
-    args = vars(parser.parse_args())
-    print(f"args before calling app.run: {args}")
-    app.run(args=args)
+    #app, parser = get_app()
+    exit_code = get_app()
+    #args = parser.parse_known_args()
+    #print(f"args before calling app.run: {args}")
+    #app.run(args=args)
     return exit_code
 
 # HNG
