@@ -79,20 +79,25 @@ def get_app():
 ######################################################################################3
 # handle plugins
 ######################################################################################3
-    # get a list of all available plugins 
-    apps = []
+    # get a mapping of app_class from all available plugins 
     plugins = QHPlugin.load_all_plugins()
-    for p in plugins:
-        apps.append(p.load()(qhinit))
+    logger.debug(f"loaded {len(plugins.keys())} plugins")
+
+    # tell the parser about the plugin
+    for plugin_name in plugins.keys():
+        qhinit.add_argument(f"--{plugin_name}", action='store_true', dest=f"plugin_{plugin_name}")
+
     _args = app_parser.parse_known_args()
     cli_args = vars(_args[0])
     action_cli_args = _args[1]
-    print(f"{cli_args=}")
-    print(f"{action_cli_args=}")
+    logger.debug(f"{cli_args=}")
+    logger.debug(f"{action_cli_args=}")
 
     action = cli_args['__qhaction']
     config_file  = cli_args['config_file']
+    
     #determine which plugin to use to create an instance of AppBase
+    #the init action does not need any information other than the plugin
     tgt_plugin = None
     if action == 'init':
         # find the plugin that was specified on the cli
@@ -102,27 +107,37 @@ def get_app():
                 break
         logger.debug(f"{tgt_plugin=}")
         load = QHPlugin.load_plugin(tgt_plugin)#(app_name, config_file=cfg_file)
-        app_class = load(app_parser)
+        #app_class = load(app_parser)
+        app_class = load()
         app = app_class
+    else:
+        app_config_parser = AppConfigFileParser()
+        app_config_parser.read(C.DEFAULT_CONFIG_FILEPATH)
+        apps = []
+        #for s in app_config_parser.sections():
+
+
+
+
 
 ######################################################################################3
 # parse action's arguments
 ######################################################################################3
     if action == 'init':
         app_name = tgt_plugin
-        print("==========making instance of app")
-        app = app_class(app_name, config_file) # done with app_name, config_file
-        print("==========call init_parser_arguments()")
-        init_parser = app.init_parser_arguments(qhinit, action_cli_args)
-        print("==========qhinit.parse_args()")
+        app = app_class(app_name, config_file)
+        init_parser = app.get_init_parser()
         action_args = init_parser.parse_args(action_cli_args, namespace=action_ns)
-        print(action_args)
-        print("==========app.run()")
+        logger.debug(f"{action_args=}")
         app.run_init(vars(action_args))
         exit()
         return app, qhinit
     elif action == 'make':
-        app.make_parser_arguments(app_parser)
+        make_parser = app.get_make_parser()
+        make_args = make_parser.parse_args(action_cli_args, namespace=action_ns)
+        print(make_args)
+        return
+        #app.make_parser_arguments(app_parser)
         return app, app_parser
     elif action == 'describe':
         app.describe_parser_arguments(app_args)
@@ -135,6 +150,10 @@ def get_app():
     return None, None
     app = app_class(app)
     exit()
+
+######################################################################################3
+# old code?
+######################################################################################3
 
     tgt_plugin_name = None
     #app_parser = get_main_parser()

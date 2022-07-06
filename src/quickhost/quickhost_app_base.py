@@ -38,12 +38,6 @@ class AppBase(metaclass=ABCMeta):
         """get remaining config from argparse namespace"""
         pass
 
-    @classmethod
-    @abstractmethod
-    def parser_arguments(self, subparsers: any) -> None:
-        """modify main ArgumentParser to accept arguments required by plugin"""
-        pass
-
     @abstractmethod
     def plugin_init():
         """Account setup, networking, etc. required to use plugin"""
