@@ -2,16 +2,16 @@ import datetime
 import json
 import urllib.request
 
-def convert_datetime_to_string(thing):
+def scrub_datetime(thing):
     """
     Remove all datetime objects from a dict, and convert them to a string
     """
     if isinstance(thing, dict):
         for k,v in thing.items():
-            thing[k] = convert_datetime_to_string(v)
+            thing[k] = scrub_datetime(v)
     elif isinstance(thing, list):
         for i,a in enumerate(thing):
-            thing[i] = convert_datetime_to_string(a)
+            thing[i] = scrub_datetime(a)
     elif isinstance(thing, datetime.datetime):
         thing = str(thing)
     else:
