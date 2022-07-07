@@ -12,7 +12,8 @@ class APP_CONST:
 class QHExit:
     OK = 0
     GENERAL_FAILURE = 1
-    KNOWN_ISSUE = 2
+    ABORTED = 2
+    KNOWN_ISSUE = 3
     # 2x - security-related
     NOT_QH_USER = 21
     
