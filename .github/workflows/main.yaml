@@ -20,6 +20,7 @@ jobs:
       with:
         python-version: '3.7'
         architecture: 'x64'
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -31,11 +32,12 @@ jobs:
       run : |
         pip install -e .
 
-    - name: Install plugins
+    - name: Fetch plugins
       uses: actions/checkout@v2
       with:
         path: quickhost-plugins
-        repo: 'zeebrow/quickhost-plugins'
+        repository: 'zeebrow/quickhost-plugins'
+
     - name:  Install plugins
       run: |
         pip install -e quickhost-plugins/plugins/aws/
