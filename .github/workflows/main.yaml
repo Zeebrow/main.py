@@ -5,7 +5,7 @@ on:
 env:
   AWS_SESSION_NAME: gh-action-quickhost
   AWS_REGION: us-east-1
-  AWS_QH_ROLE_ARN: 
+  AWS_QH_ROLE_ARN: arn:aws:iam::${{ secrets.CI_AWS_ACCOUNT }}:role/ghactions-quickhost-ci
 
 jobs:
   build-linux-amd64:
