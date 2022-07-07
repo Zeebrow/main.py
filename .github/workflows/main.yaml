@@ -6,21 +6,27 @@ env:
   AWS_SESSION_NAME: gh-action-quickhost
   AWS_REGION: us-east-1
   AWS_QH_ROLE_ARN: arn:aws:iam::${{ secrets.CI_AWS_ACCOUNT }}:role/ghactions-quickhost-ci
-  PROG_NAME: quickhost
+  PROG_NAME: main.py
 
 jobs:
-  build-linux-amd64:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        os: ["ubuntu-latest", "windows-latest"]
+    runs-on: ${{ matrix.os }}
     permissions:
       id-token: write
       contents: read
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Go
+
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
-        python-version: '3.7'
+        python-version: ${{ matrix.python-version }}
         architecture: 'x64'
+        cache: pip
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
