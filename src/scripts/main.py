@@ -7,40 +7,23 @@ import configparser
 from pathlib import Path
 from importlib import metadata
 import warnings
-# TODO: move AppBase back, and have plugins import quickhost
 
 from quickhost import AppBase, APP_CONST as C, QHExit, QHPlugin
 
 
-#DEFAULT_CONFIG_FILEPATH = str(Path().home() / ".local/etc/quickhost.conf")
-
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.INFO)
 logging.getLogger("botocore").setLevel(logging.WARNING)
-logging.getLogger("boto3").setLevel(logging.WARNING)
+logging.getLogger("boto3").setLevel(logging.INFO)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 debug_fmt='%(asctime)s : %(name)s : %(funcName)s : %(levelname)s: %(message)s'
-fmt='%(levelname)s: %(message)s'
+normal_fmt='%(levelname)s: %(message)s'
+just_text='%(message)s'
 sh = logging.StreamHandler()
 sh.setFormatter(logging.Formatter(debug_fmt))
+#sh.setFormatter(logging.Formatter(just_text))
 logger.addHandler(sh)
-
-class AppConfigFileParser(configparser.ConfigParser):
-    def __init__(self):
-        super().__init__(allow_no_value=True)
-
-def load_all_plugins():
-    #note this is to remove the need for app_name from the main parser. it shouldn't need to care.
-    return metadata.entry_points().select(group="quickhost_plugin")
-
-def load_plugin(tgt_module: str):
-    plugin = metadata.entry_points().select(name=f"quickhost_{tgt_module}")
-    if list(plugin) == []:
-        logger.error(f"No such plugin 'quickhost_{tgt_module}' is installed.")
-        exit(QHExit.GENERAL_FAILURE)
-    logger.debug(f"Found plugin '{plugin}'")
-    app_class = tuple(plugin)[0].load()
-    return app_class
 
 def main():
 ######################################################################################3
@@ -123,11 +106,10 @@ def main():
         app_name = tgt_init_plugin
         app = app_class(app_name, config_file=None)
         init_parser = app.get_init_parser()
-        action_args = init_parser.parse_args(action_cli_args)
-        logger.debug(f"{action_args=}")
-        app.run_init(vars(action_args))
-        exit()
-        return (app, init_parser)
+        init_args = init_parser.parse_args(action_cli_args)
+        logger.debug(f"{init_args=}")
+        return app.run_init(vars(init_args))
+
     elif action == 'make':
         app = app_class(app_name, config_file)
         make_parser = app.get_make_parser()
@@ -151,4 +133,9 @@ def main():
     app = app_class(app)
     exit()
 
-exit(main())
+rc, fd1, fd2= main()
+if fd1:
+    sys.stdout.write(fd1 + "\n")
+if fd2:
+    sys.stderr.write(fd2 + "\n")
+exit(rc)

@@ -16,4 +16,5 @@ class QHExit:
     KNOWN_ISSUE = 3
     # 2x - security-related
     NOT_QH_USER = 21
+    FAIL_AUTH = 22
     
