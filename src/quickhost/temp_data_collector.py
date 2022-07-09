@@ -32,7 +32,6 @@ def store_test_data(resource: str, action: str, response_data: dict):
 
     if not fp.exists():
         newb = dict({action: []})
-        print(newb)
         with fp.open("w") as f:
             json.dump(newb, f)
     j = None
