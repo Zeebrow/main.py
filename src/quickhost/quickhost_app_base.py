@@ -34,11 +34,6 @@ class AppBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def run(self):
-        """get remaining config from argparse namespace"""
-        pass
-
-    @abstractmethod
     def plugin_init():
         """Account setup, networking, etc. required to use plugin"""
         pass

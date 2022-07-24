@@ -25,7 +25,7 @@ sh.setFormatter(logging.Formatter(debug_fmt))
 #sh.setFormatter(logging.Formatter(just_text))
 logger.addHandler(sh)
 
-def main():
+def cli_main():
 ######################################################################################3
 # handle plugins
 ######################################################################################3
@@ -36,7 +36,9 @@ def main():
 # main ArgumentParser
 ######################################################################################3
     app_parser = argparse.ArgumentParser(description="make easily managed hosts, quickly")
-    app_parser.add_argument("-f", "--config-file", required=False, help="Use an alternative configuration file to override the default.")
+    #app_parser.add_argument("-f", "--config-file", required=False, help="Use an alternative configuration file to override the default.")
+    # returns a called `open()` function
+    app_parser.add_argument("-f", "--config-file", default=C.DEFAULT_CONFIG_FILEPATH, type=argparse.FileType('r'), required=False, help="Use an alternative configuration file to override the default.")
     qh_main = app_parser.add_subparsers()
     qhinit = qh_main.add_parser("init")
     qhmake = qh_main.add_parser("make")
@@ -104,25 +106,25 @@ def main():
 ######################################################################################3
     if action == 'init':
         app_name = tgt_init_plugin
-        app = app_class(app_name, config_file=None)
+        app = app_class(app_name)
         init_parser = app.get_init_parser()
         init_args = init_parser.parse_args(action_cli_args)
         logger.debug(f"{init_args=}")
         return app.run_init(vars(init_args))
 
     elif action == 'make':
-        app = app_class(app_name, config_file)
+        app = app_class(app_name)
         make_parser = app.get_make_parser()
         make_args = make_parser.parse_args(action_cli_args)
         logger.debug(f"make_parser params: {make_args=}")
         return app.run_make(vars(make_args))
     elif action == 'describe':
-        app = app_class(app_name, config_file)
+        app = app_class(app_name)
         describe_parser = app.get_describe_parser()
         args = describe_parser.parse_args(action_cli_args)
         return app.run_describe(vars(args))
     elif action == 'destroy':
-        app = app_class(app_name, config_file)
+        app = app_class(app_name)
         destroy_parser = app.get_destroy_parser()
         args = destroy_parser.parse_args(action_cli_args)
         return app.run_destroy(vars(args))
@@ -133,7 +135,7 @@ def main():
     app = app_class(app)
     exit()
 
-rc, fd1, fd2= main()
+fd1, fd2, rc = cli_main()
 if fd1:
     sys.stdout.write(fd1 + "\n")
 if fd2:
