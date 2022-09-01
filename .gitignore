@@ -3,6 +3,8 @@ venv-pytest
 postups/*/
 userdatas/*userdata*
 **.egg*
+build
+dist
 
 # personal preference
 tmp

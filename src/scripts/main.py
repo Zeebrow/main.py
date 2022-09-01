@@ -27,10 +27,15 @@ logger.addHandler(sh)
 
 def cli_main():
 ######################################################################################3
-# handle plugins
+# fetch all plugins
 ######################################################################################3
     plugins = QHPlugin.load_all_plugins()
-    logger.debug(f"loaded {len(plugins.keys())} plugins")
+    get_parser = lambda provider: plugins[provider]['parser']
+    get_app = lambda provider: plugins[provider]['app']
+
+    logger.debug(f"{plugins=}")
+    logger.debug(f"{get_app('aws')=}")
+    logger.debug(f"{get_parser('aws')=}")
 
 ######################################################################################3
 # main ArgumentParser
@@ -39,6 +44,7 @@ def cli_main():
     #app_parser.add_argument("-f", "--config-file", required=False, help="Use an alternative configuration file to override the default.")
     # returns a called `open()` function
     app_parser.add_argument("-f", "--config-file", default=C.DEFAULT_CONFIG_FILEPATH, type=argparse.FileType('r'), required=False, help="Use an alternative configuration file to override the default.")
+    #app_parser.add_argument("-h", "--help",  action='store_true', required=False, help="Show this dialog and exit")
     qh_main = app_parser.add_subparsers()
     qhinit = qh_main.add_parser("init")
     qhmake = qh_main.add_parser("make")
@@ -55,9 +61,27 @@ def cli_main():
     # subparser arguments are parsed as part of the main parser. or something.
     for plugin_name in plugins.keys():
         qhinit.add_argument(f"--{plugin_name}", action='store_true', dest=f"plugin_{plugin_name}")
+        get_parser(plugin_name)().get_init_parser(qhinit)
+
         qhmake.add_argument(f"--{plugin_name}", action='store', dest=f"{plugin_name}_app_name")
+        #get_parser(plugin_name)().get_make_parser(qhmake)
+
         qhdescribe.add_argument(f"--{plugin_name}", action='store', dest=f"{plugin_name}_app_name")
+        get_parser(plugin_name)().get_describe_parser(qhdescribe)
+
         qhdestroy.add_argument(f"--{plugin_name}", action='store', dest=f"{plugin_name}_app_name")
+        #get_parser(plugin_name)().get_destroy_parser(qhdestroy)
+
+    exit()
+    
+
+    #################################################################3
+    # Find out if --help or -h is passed
+    do_help = False
+    find_help = app_parser.parse_args()
+    if 'h' in find_help:
+        logger.debug('do help')
+        do_help = True
 
     #################################################################3
     # find out if 'init' is the action.
@@ -86,17 +110,17 @@ def cli_main():
         logger.debug(f"{tgt_init_plugin=}")
         load = QHPlugin.load_plugin(tgt_init_plugin)
         app_class = load()
-    #elif action == 'make':
     else:
         # make requires the --{plugin_name} flag
         tgt_plugin_name = None
         for arg,val in cli_args.items():
+            logger.debug(f"{arg=}, {val=}")
             if arg.endswith('app_name'):
                 app_name = val
                 tgt_plugin_name = arg.split('_app_name')[0]
         if app_name is None:
-            print("need an app name")
-            exit()
+            logger.debug("need an app name")
+            sys.exit()
         load = QHPlugin.load_plugin(tgt_plugin_name)
         app_class = load()
 
@@ -115,6 +139,10 @@ def cli_main():
     elif action == 'make':
         app = app_class(app_name)
         make_parser = app.get_make_parser()
+        if 'help' in action_cli_args:
+            logger.debug('here')
+            make_parser.print_help()
+        #exit()
         make_args = make_parser.parse_args(action_cli_args)
         logger.debug(f"make_parser params: {make_args=}")
         return app.run_make(vars(make_args))
@@ -130,14 +158,14 @@ def cli_main():
         return app.run_destroy(vars(args))
     else:
         logger.error(f"No such action '{action}'")
-        exit(QHExit.GENERAL_FAILURE)
+        sys.exit(QHExit.GENERAL_FAILURE)
     return None, None
     app = app_class(app)
-    exit()
+    sys.exit()
 
 fd1, fd2, rc = cli_main()
 if fd1:
     sys.stdout.write(fd1 + "\n")
 if fd2:
     sys.stderr.write(fd2 + "\n")
-exit(rc)
+sys.exit(rc)

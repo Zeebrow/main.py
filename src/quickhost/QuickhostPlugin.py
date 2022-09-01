@@ -1,6 +1,8 @@
 import logging
 from importlib import metadata
 import sys
+from collections import defaultdict
+import json
 
 from .quickhost_app_base import AppBase
 from .constants import QHExit
@@ -17,36 +19,27 @@ class QHPlugin:
 
     @classmethod
     def load_all_plugins(self):
-        available_plugins = {}
+        # plugins= {'aws': {'app': asdf[0].load(), 'parser': asdf[1].load()}}
+        plugins = defaultdict(dict)
+
         if sys.version_info.minor < 10:
-            print(metadata.entry_points())
-            plugins = metadata.entry_points()['quickhost_plugin']
+            plugin_parsers = metadata.entry_points()['quickhost_plugin']
         else:
-            plugins = metadata.entry_points().select(group="quickhost_plugin")
-        for p in plugins:
-            _app = p.load()()
-            available_plugins[_app.plugin_name] = _app
-        return available_plugins 
+            plugin_parsers = metadata.entry_points().select(group=f"quickhost_plugin")
 
-    @classmethod
-    def load_plugin(self, tgt_module: str):
-        if sys.version_info.minor < 10:
-            for p in metadata.entry_points()['quickhost_plugin']:
-                if p[0].endswith(tgt_module):
-                    app_class = p.load()
-                    logger.debug(f"Found plugin '{plugin}'")
-                    return app_class
-            logger.error(f"No such plugin 'quickhost_{tgt_module}' is installed.")
-            exit(QHExit.GENERAL_FAILURE)
-        else:
-            plugin = metadata.entry_points().select(name=f"quickhost_{tgt_module}")
-        if list(plugin) == []:
-            logger.error(f"No such plugin 'quickhost_{tgt_module}' is installed.")
-            exit(QHExit.GENERAL_FAILURE)
-        logger.debug(f"Found plugin '{plugin}'")
-        app_class = tuple(plugin)[0].load()
-        return app_class
-
-    def get_app(self) -> AppBase:
-        pass
-
+        # sift through plugins, organize by cloud provider and return
+        for p in plugin_parsers:
+            provider_name = p.name.split('_')[1]
+            plugin_type = p.name.split('_')[2]
+            if plugin_type == 'app':
+                plugins[provider_name]['app'] =  p.load()
+            elif plugin_type == 'parser':
+                plugins[provider_name]['parser'] =  p.load()
+            else:
+                logger.warning(f"Unknown plugin type '{plugin_type}'")
+        #print(plugins)
+        #print(dict(plugins))
+        if dict(plugin_parsers) == {}:
+            logger.error(f"No plugins are installed!")
+            sys.exit(QHExit.GENERAL_FAILURE)
+        return dict(plugins)
