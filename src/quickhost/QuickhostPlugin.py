@@ -29,8 +29,8 @@ class QHPlugin:
 
         # sift through plugins, organize by cloud provider and return
         for p in plugin_parsers:
-            provider_name = p.name.split('_')[1]
-            plugin_type = p.name.split('_')[2]
+            provider_name = p.name.split('_')[0]
+            plugin_type = p.name.split('_')[1]
             if plugin_type == 'app':
                 plugins[provider_name]['app'] =  p.load()
             elif plugin_type == 'parser':

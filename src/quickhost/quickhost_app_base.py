@@ -1,13 +1,11 @@
 from typing import List
 from dataclasses import dataclass
-from argparse import Namespace, SUPPRESS
+import argparse
 from abc import ABCMeta, abstractmethod
 import configparser
 import logging
-from os import get_terminal_size
 from pathlib import Path
 
-from .utilities import get_my_public_ip
 from .constants import APP_CONST as C
 
 logger = logging.getLogger(__name__)
@@ -17,16 +15,20 @@ class AppConfigFileParser(configparser.ConfigParser):
     def __init__(self):
         super().__init__(allow_no_value=True)
 
+class ParserBase(metaclass=ABCMeta):
+    def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH):
+        pass
+
+    @abstractmethod
+    def add_parser_arguments(self, action: str, parser: argparse.ArgumentParser) -> None:
+        pass
+
 class AppBase(metaclass=ABCMeta):
-    def __init__(self, _cli_parser_id: str, app_name: str, config_file=C.DEFAULT_CONFIG_FILEPATH):
+    def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH):
         """should there actually be logic here? in the same vain, more than just primitive data types?"""
-        self._cli_parser_id = _cli_parser_id
-        self.app_name = app_name
         self.config_file = Path(config_file).absolute()
         if not self.config_file.exists():
             raise RuntimeError(f"no such file: {self.config_file}")
-        if self._cli_parser_id is None:
-            raise Exception("need a cli_parser_id")
 
     @abstractmethod
     def load_default_config(self):
