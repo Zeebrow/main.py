@@ -12,3 +12,6 @@ tmp
 **.tar.gz
 **.swp
 **.pem
+
+# symlinks to individual repos
+plugins/
