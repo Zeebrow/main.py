@@ -48,7 +48,7 @@ jobs:
 
     - name:  Install plugins
       run: |
-        pip install -e quickhost-plugins/plugins/aws/
+        pip install -e quickhost-plugins/plugins/null/
 
     - name: Run a command
       run: |
