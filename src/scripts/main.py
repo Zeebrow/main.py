@@ -13,17 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import json
 import argparse
 import sys
-from os import get_terminal_size
 import logging
-import configparser
-from pathlib import Path
-from importlib import metadata
-import warnings
 
-from quickhost import AppBase, APP_CONST as C, QHExit, QHPlugin
+from quickhost import APP_CONST as C, QHExit, QHPlugin
 
 """
 main.py
@@ -61,41 +55,46 @@ under certain conditions; type `show c' for details.
     """)
 
 def cli_main():
+    plugins = QHPlugin.load_all_plugins()
 #######################################################################################
 # main argument parser
 #######################################################################################
     app_parser = argparse.ArgumentParser(description="make easily managed hosts, quickly", add_help=False)
     app_parser.add_argument("-f", "--config-file", default=C.DEFAULT_CONFIG_FILEPATH, type=argparse.FileType('r'), required=False, help="Use an alternative configuration file to override the default.") # returns a called `open()` function
     app_parser.add_argument("-h", "--help",  dest='__help', action='store_true', required=False, help="Show this dialog and exit")
-    app_parser.add_argument("--provider", default=None, dest='__provider', required=True, help="Choose which cloud provider to use to start your host.")
-    app_parser.add_argument("--action", default=None, choices=["init", "make", "describe", "update", "destroy"], dest='__qhaction', required=True, help="Choose which action to take")
+    app_parser.add_argument("--provider", default=None, choices=plugins.keys(), dest='__provider', required=False, help="Choose which cloud provider to use to start your host.")
+    app_parser.add_argument("--action", default=None, choices=["init", "make", "describe", "update", "destroy"], dest='__qhaction', required=False, help="Choose which action to take")
 
     _args = app_parser.parse_known_args()
     main_args = vars(_args[0])
     action = main_args['__qhaction']
+    provider = main_args['__provider']
+    help = main_args['__help']
 
     # load defaults from config file (such as log levels) - another time...
     do_logging()
 
-    # handle help - another time...
-    if main_args['__help']:
-        app_parser.print_help()
-        exit(1)
-    
-
-#######################################################################################
-# fetch all plugins
-#######################################################################################
-    plugins = QHPlugin.load_all_plugins()
-    logger.debug(f"{plugins=}")
-
+    # handle main parser errors
+    if not help:
+        if provider is None:
+            app_parser.print_help()
+            exit(1)
+        if action is None:
+            app_parser.print_help()
+            exit(1)
+    else:
+        if provider is not None and action is not None:
+            pass
+        else:
+            app_parser.print_help()
+            exit()
 
 #######################################################################################
 # plugin argument parser
 #######################################################################################
     load = QHPlugin.load_all_plugins()
     plugin_parser = load[main_args['__provider']]['parser']()()
-    plugin_parser.add_parser_arguments(main_args['__qhaction'], app_parser)
+    plugin_parser.add_parser_arguments(main_args['__qhaction'], app_parser, main_args['__help'])
     plugin_args = app_parser.parse_args()
     logger.debug(f"{plugin_args=}")
 
@@ -129,3 +128,4 @@ if fd1:
 if fd2:
     sys.stderr.write(fd2 + "\n")
 sys.exit(rc)
+
