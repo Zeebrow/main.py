@@ -31,12 +31,25 @@ class AppConfigFileParser(configparser.ConfigParser):
         super().__init__(allow_no_value=True)
 
 class ParserBase(metaclass=ABCMeta):
-    def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH):
-        pass
+    def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH) -> None: ...
 
     @abstractmethod
-    def add_parser_arguments(self, action: str, parser: argparse.ArgumentParser) -> None:
-        pass
+    def add_subparsers(self, parser: argparse.ArgumentParser) -> None: ...
+
+    @abstractmethod
+    def add_init_parser_arguments(self, parser: argparse.ArgumentParser) -> None: ...
+
+    @abstractmethod
+    def add_make_parser_arguments(self, parser: argparse.ArgumentParser) -> None: ...
+
+    @abstractmethod
+    def add_describe_parser_arguments(self, parser: argparse.ArgumentParser) -> None: ...
+
+    @abstractmethod
+    def add_update_parser_arguments(self, parser: argparse.ArgumentParser) -> None: ...
+
+    @abstractmethod
+    def add_destroy_parser_arguments(self, parser: argparse.ArgumentParser) -> None: ...
 
 class AppBase(metaclass=ABCMeta):
     def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH):
@@ -48,31 +61,29 @@ class AppBase(metaclass=ABCMeta):
     @abstractmethod
     def load_default_config(self):
         """get possible config from file"""
-        pass
+        ...
 
     @abstractmethod
     def plugin_init():
         """Account setup, networking, etc. required to use plugin"""
-        pass
+        ...
 
     @abstractmethod
     def create(self):
-        """
-        Start hosts
-        """
-        pass
+        """ Start hosts """
+        ...
 
     @abstractmethod
     def describe(self) -> dict:
         """return information about hosts in the target app"""
-        pass
+        ...
 
     @abstractmethod
     def update(self):
         """change the hosts in some way"""
-        pass
+        ...
         
     @abstractmethod
     def destroy(self):
         """ delete all hosts associated with your app """
-        pass
+        ...

@@ -17,7 +17,7 @@ import argparse
 import sys
 import logging
 
-from quickhost import APP_CONST as C, QHExit, QHPlugin
+from quickhost import  APP_CONST as C, QHPlugin, AppBase, ParserBase
 
 """
 main.py
@@ -59,68 +59,39 @@ def cli_main():
 #######################################################################################
 # main argument parser
 #######################################################################################
-    app_parser = argparse.ArgumentParser(description="make easily managed hosts, quickly", add_help=False)
+    app_parser = argparse.ArgumentParser(description="make easily managed hosts, quickly")
     app_parser.add_argument("-f", "--config-file", default=C.DEFAULT_CONFIG_FILEPATH, type=argparse.FileType('r'), required=False, help="Use an alternative configuration file to override the default.") # returns a called `open()` function
-    app_parser.add_argument("-h", "--help",  dest='__help', action='store_true', required=False, help="Show this dialog and exit")
-    app_parser.add_argument("--provider", default=None, choices=plugins.keys(), dest='__provider', required=False, help="Choose which cloud provider to use to start your host.")
-    app_parser.add_argument("--action", default=None, choices=["init", "make", "describe", "update", "destroy"], dest='__qhaction', required=False, help="Choose which action to take")
-
-    _args = app_parser.parse_known_args()
-    main_args = vars(_args[0])
-    action = main_args['__qhaction']
-    provider = main_args['__provider']
-    help = main_args['__help']
-
+    # app_parser.add_argument("-h", "--help",  dest='help', action='store_true', required=False, help="Show this dialog and exit")
+    main_subparser = app_parser.add_subparsers(dest='main')
+    for k,v in plugins.items():
+        plugin_subparser = main_subparser.add_parser(k)
+        plugin_parser_class: ParserBase = v['parser']()()
+        plugin_parser_class.add_subparsers(plugin_subparser)
+    
     # load defaults from config file (such as log levels) - another time...
     do_logging()
 
-    # handle main parser errors
-    if not help:
-        if provider is None:
-            app_parser.print_help()
-            exit(1)
-        if action is None:
-            app_parser.print_help()
-            exit(1)
-    else:
-        if provider is not None and action is not None:
-            pass
-        else:
-            app_parser.print_help()
-            exit()
+    args = vars(app_parser.parse_args())
 
-#######################################################################################
-# plugin argument parser
-#######################################################################################
-    load = QHPlugin.load_all_plugins()
-    plugin_parser = load[main_args['__provider']]['parser']()()
-    plugin_parser.add_parser_arguments(main_args['__qhaction'], app_parser, main_args['__help'])
-    plugin_args = app_parser.parse_args()
-    logger.debug(f"{plugin_args=}")
+    [print(f"{k}: {v}") for k,v in args.items()]
+    tgt_plugin = args.pop("main")
+    app_name = None #@@@
+    if 'app_name' in args.keys(): #@@@
+        app_name = args.pop("app_name") #@@@
+    action = args.pop(tgt_plugin)
+    app_class: AppBase = plugins[tgt_plugin]['app']()(app_name)
 
-    app_class = load[main_args['__provider']]['app']()
-
-
-#######################################################################################
-# parse action's arguments
-#######################################################################################
-    if action == 'init':
-        # every other action has a required 'app_name' argument, init uses its own provider name?! -_-
-        app = app_class(main_args['__provider'])
-        return app.run_init(vars(plugin_args))
-
-    elif action == 'make':
-        app = app_class(plugin_args.app_name)
-        return app.run_make(vars(plugin_args))
-    elif action == 'describe':
-        app = app_class(plugin_args.app_name)
-        return app.run_describe(vars(plugin_args))
-    elif action == 'destroy':
-        app = app_class(plugin_args.app_name)
-        return app.run_destroy(vars(plugin_args))
-    else:
-        logger.error(f"No such action '{action}'")
-        sys.exit(QHExit.GENERAL_FAILURE)
+    match action:
+        case 'init':
+            return app_class.plugin_init(args)
+        case 'make':
+            return app_class.create(args)
+        case 'describe':
+            return app_class.describe(args)
+        case 'destroy':
+            return app_class.destroy(args)
+        case 'update':
+            return app_class.update(args)
 
 fd1, fd2, rc = cli_main()
 if fd1:
