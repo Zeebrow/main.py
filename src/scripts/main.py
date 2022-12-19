@@ -61,7 +61,6 @@ def cli_main():
 #######################################################################################
     app_parser = argparse.ArgumentParser(description="make easily managed hosts, quickly")
     app_parser.add_argument("-f", "--config-file", default=C.DEFAULT_CONFIG_FILEPATH, type=argparse.FileType('r'), required=False, help="Use an alternative configuration file to override the default.") # returns a called `open()` function
-    # app_parser.add_argument("-h", "--help",  dest='help', action='store_true', required=False, help="Show this dialog and exit")
     main_subparser = app_parser.add_subparsers(dest='main')
     for k,v in plugins.items():
         plugin_subparser = main_subparser.add_parser(k)
