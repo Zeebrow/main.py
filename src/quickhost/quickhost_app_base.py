@@ -16,7 +16,7 @@
 from typing import List
 from dataclasses import dataclass
 import argparse
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 import configparser
 import logging
 from pathlib import Path
@@ -52,11 +52,15 @@ class ParserBase(metaclass=ABCMeta):
     def add_destroy_parser_arguments(self, parser: argparse.ArgumentParser) -> None: ...
 
 class AppBase(metaclass=ABCMeta):
-    def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH):
-        """should there actually be logic here? in the same vain, more than just primitive data types?"""
-        self.config_file = Path(config_file).absolute()
-        if not self.config_file.exists():
-            raise RuntimeError(f"no such file: {self.config_file}")
+    """
+    The idea is to use a class as a place to stuff your CLI arguments.
+
+    This way, you can implement a method and assign the results of AWS functions to this class' properties for reuse.
+
+    Using the `app_name` as a key, caching may be implemented. 
+    """
+    @abstractmethod
+    def __init__(self, app_name: str, config_file=C.DEFAULT_CONFIG_FILEPATH): ...
 
     @abstractmethod
     def load_default_config(self):

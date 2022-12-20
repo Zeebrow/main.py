@@ -65,9 +65,14 @@ function test_stuff(){
   main.py -h
 }
 
+function keys() {
+  echo TODO
+}
+
 case "$1" in
   list) shift; listem "$@";;
   sgs) shift; sgids "$@";;
+  keys) shift; keys "$@";;
   blog) shift; blog "$@";;
   test-help) test_stuff;;
   *) echo '
@@ -75,6 +80,7 @@ case "$1" in
 
     list            list instances
     sgs             list security groups
+    keys            list ec2 (ssh) keys
     blog            write a blog post for today
     test-help       print help for all of the plugin options
     help            show this dialog and exit

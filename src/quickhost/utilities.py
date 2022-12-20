@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import datetime
-import json
+import logging
 import urllib.request
 
 def scrub_datetime(thing):
@@ -41,3 +41,49 @@ def get_my_public_ip() -> str:
             return html.decode('utf-8').strip() + "/32"
     except Exception:
         return input('Could not determine your public ip address (are you connected to the internet?). Enter it here (Ctrl^C to cancel): ')
+
+
+class QHLogFormatter(logging.Formatter):
+    """
+    Shamelessly pilfered from 
+    https://stackoverflow.com/questions/14844970/modifying-logging-message-format-based-on-message-logging-level-in-python3#14859558
+    """
+    ErrorFormat='%(levelname)s: %(message)s'
+    CriticalFormat = ErrorFormat
+    WarningFormat = ErrorFormat
+    InfoFormat = ErrorFormat
+    DebugFormat='%(asctime)s : %(name)s : %(funcName)s : %(levelname)s: %(message)s'
+    ErrorFormatColor='\033[31m%(levelname)s:\033[0m %(message)s'
+    CriticalFormatColor = ErrorFormatColor
+    WarningFormatColor='\033[93m%(levelname)s:\033[0m %(message)s'
+    InfoFormatColor='\033[33m%(levelname)s:\033[0m %(message)s'
+    DebugFormatColor='\033[94m%(asctime)s : %(name)s : %(funcName)s : %(levelname)s:\033[0m %(message)s'
+
+    def __init__(self, color=False):
+        self.colored_output = color
+        super().__init__(fmt="%(levelno)d: %(msg)s", datefmt=None, style='%')
+
+    def format(self, record):
+        # orig_fmt = self._style._fmt
+        if self.colored_output:
+            match record.levelno:
+                case logging.DEBUG:
+                    self._style._fmt = QHLogFormatter.DebugFormatColor
+                case logging.INFO:
+                    self._style._fmt = QHLogFormatter.InfoFormatColor
+                case logging.WARNING:
+                    self._style._fmt = QHLogFormatter.WarningFormatColor
+                case (logging.ERROR | logging.CRITICAL):
+                    self._style._fmt = QHLogFormatter.ErrorFormatColor
+        else:
+            match record.levelno:
+                case logging.DEBUG:
+                    self._style._fmt = QHLogFormatter.DebugFormat
+                case logging.INFO:
+                    self._style._fmt = QHLogFormatter.InfoFormat
+                case logging.WARNING:
+                    self._style._fmt = QHLogFormatter.WarningFormat
+                case (logging.ERROR | logging.CRITICAL):
+                    self._style._fmt = QHLogFormatter.ErrorFormat
+        return super().format(record)
+
