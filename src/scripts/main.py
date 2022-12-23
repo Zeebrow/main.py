@@ -30,29 +30,13 @@ main.py
 
 logger = logging.getLogger()
 
-def do_logging(level=2):
+def do_logging(level="AAAAAAAAAA ARGPARSE WHY ARE YOU LIKE THIS"):
     global logger
-    if level is None:
-        level = 0
-    elif level > 2:
-        level = 2
-    levelmap = {
-        0: logging.ERROR,
-        1: logging.INFO,
-        2: logging.DEBUG
-    }
     sh = logging.StreamHandler()
-    logger.setLevel(levelmap[level])
+    logger.setLevel(logging.DEBUG)
     logging.getLogger("botocore").setLevel(logging.WARNING)
     logging.getLogger("boto3").setLevel(logging.INFO)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
-    # match level:
-    #     case (0 | 1):
-    #         log_format='%(levelname)s: %(message)s'
-    #         sh.setFormatter(logging.Formatter(log_format))
-    #     case 2:
-    #         log_format='\033[94m%(asctime)s : %(name)s : %(funcName)s : %(levelname)s:\033[0m %(message)s'
-    #         sh.setFormatter(logging.Formatter(log_format))
     sh.setFormatter(QHLogFormatter(color=True))
     logger.addHandler(sh)
 
@@ -71,17 +55,10 @@ def cli_main():
 # main argument parser
 #######################################################################################
     app_parser = argparse.ArgumentParser(description="make easily managed hosts, quickly", add_help=False)
-    app_parser.add_argument("-v", action='count', default=0, required=False, help="increase verbosity", )
-    app_parser.add_argument("-f", "--config-file", default=argparse.SUPPRESS,
-        type=argparse.FileType('r'), required=False, 
-        help="Use an alternative configuration file to override the default.") # returns a called `open()` function
     app_parser.add_argument("-h", action='store_true', required=False, help="help")
 
-    # ns = argparse.Namespace()
-    # _tempargs = app_parser.parse_known_args(namespace=ns)
     _tempargs = app_parser.parse_known_args()
-    # override defaults from a config file - another time...
-    do_logging(_tempargs[0].v)
+    do_logging()
 
     main_subparser = app_parser.add_subparsers(dest='main')
     for k,v in plugins.items():
@@ -89,11 +66,7 @@ def cli_main():
         plugin_parser_class: ParserBase = v['parser']()()
         plugin_parser_class.add_subparsers(plugin_subparser)
     
-    print(_tempargs[0])
-    print(_tempargs[1])
-    # args = vars(app_parser.parse_args())
-    args = vars(app_parser.parse_args(_tempargs[1]))
-    args.pop("v")
+    args = vars(app_parser.parse_args())
 
     if logger.level == logging.DEBUG:
         [print(f"{k}: {v}") for k,v in args.items()]

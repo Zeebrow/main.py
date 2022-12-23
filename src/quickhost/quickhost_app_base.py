@@ -16,7 +16,7 @@
 from typing import List
 from dataclasses import dataclass
 import argparse
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 import configparser
 import logging
 from pathlib import Path
