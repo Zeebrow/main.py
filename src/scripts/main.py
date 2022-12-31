@@ -68,8 +68,6 @@ def cli_main():
     
     args = vars(app_parser.parse_args())
 
-    if logger.level == logging.DEBUG:
-        [print(f"{k}: {v}") for k,v in args.items()]
     tgt_plugin = args.pop("main")
     if tgt_plugin is None:
         app_parser.print_help()
@@ -78,19 +76,23 @@ def cli_main():
     if 'app_name' in args.keys(): #@@@
         app_name = args.pop("app_name") #@@@
     action = args.pop(tgt_plugin)
-    app_class: AppBase = plugins[tgt_plugin]['app']()(app_name)
+    app_class: AppBase = plugins[tgt_plugin]['app']()
+    app_instance: AppBase = app_class(app_name)
 
     match action:
         case 'init':
-            return app_class.plugin_init(args)
+            return app_instance.plugin_init(args)
         case 'make':
-            return app_class.create(args)
+            return app_instance.create(args)
         case 'describe':
-            return app_class.describe(args)
+            return app_instance.describe(args)
         case 'destroy':
-            return app_class.destroy(args)
+            return app_instance.destroy(args)
         case 'update':
-            return app_class.update(args)
+            return app_instance.update(args)
+        case 'list-all':
+            app_class.list_all()
+            exit() #@@@
 
 fd1, fd2, rc = cli_main()
 if fd1:

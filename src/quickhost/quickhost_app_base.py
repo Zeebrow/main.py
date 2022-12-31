@@ -16,7 +16,7 @@
 from typing import List
 from dataclasses import dataclass
 import argparse
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractclassmethod
 import configparser
 import logging
 from pathlib import Path
@@ -90,4 +90,9 @@ class AppBase(metaclass=ABCMeta):
     @abstractmethod
     def destroy(self):
         """ delete all hosts associated with your app """
+        ...
+
+    @abstractclassmethod
+    def list_all(self):
+        """ list a plugins running app hosts """
         ...
