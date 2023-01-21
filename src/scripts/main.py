@@ -91,13 +91,21 @@ def cli_main():
         case 'update':
             return app_instance.update(args)
         case 'list-all':
-            app_class.list_all()
-            exit() #@@@
+            return app_class.list_all()
+        case 'destroy-all':
+            logger.info("Destroy all {} apps".format(app_class.__name__))
+            if not args['yes']:
+                are_you_sure = input("Are you sure? (y/N)")
+                if are_you_sure not in ["y", "Y", "yes", "YES"]:
+                    print("Aborted")
+                    logger.info("User aborted.")
+                    exit(0)
+            return app_class.destroy_all()
 
 fd1, fd2, rc = cli_main()
 if fd1:
-    sys.stdout.write(fd1 + "\n")
+    sys.stdout.write("\033[32m{}\033[0m".format(fd1) + "\n")
 if fd2:
-    sys.stderr.write(fd2 + "\n")
+    sys.stderr.write("\033[31mERROR:\033[0m" + fd2 + "\n")
 sys.exit(rc)
 
