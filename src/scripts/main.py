@@ -101,6 +101,10 @@ def cli_main():
                     logger.info("User aborted.")
                     exit(0)
             return app_class.destroy_all()
+        case 'destroy-plugin':
+            logger.info("Uninstalling plugin '{}'".format(app_class.__name__))
+            app_instance.plugin_destroy(args)
+            exit()
 
 fd1, fd2, rc = cli_main()
 if fd1:
