@@ -55,7 +55,7 @@ def cli_main():
 # main argument parser
 #######################################################################################
     app_parser = argparse.ArgumentParser(description="make easily managed hosts, quickly", add_help=False)
-    app_parser.add_argument("-h", action='store_true', required=False, help="help")
+    app_parser.add_argument("-h", "--help", action='store_true', required=False, help="help")
 
     _tempargs = app_parser.parse_known_args()
     do_logging()
@@ -95,13 +95,21 @@ def cli_main():
         case 'destroy-all':
             logger.info("Destroy all {} apps".format(app_class.__name__))
             if not args['yes']:
-                are_you_sure = input("Are you sure? (y/N)")
+                are_you_sure = input("Are you sure? (y/N): ")
                 if are_you_sure not in ["y", "Y", "yes", "YES"]:
                     print("Aborted")
                     logger.info("User aborted.")
                     exit(0)
             return app_class.destroy_all()
         case 'destroy-plugin':
+            logger.info("Destroy plugin".format(app_class.__name__))
+            if not args['yes']:
+                logger.info("You are about to remove all apps and resources associated with the %s plugin." % app_class.__name__)
+                are_you_sure = input("Are you sure? (y/N): ")
+                if are_you_sure not in ["y", "Y", "yes", "YES"]:
+                    print("Aborted")
+                    logger.info("User aborted.")
+                    exit(0)
             logger.info("Uninstalling plugin '{}'".format(app_class.__name__))
             app_instance.plugin_destroy(args)
             exit()

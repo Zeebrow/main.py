@@ -31,6 +31,9 @@ class AppConfigFileParser(configparser.ConfigParser):
         super().__init__(allow_no_value=True)
 
 class ParserBase(metaclass=ABCMeta):
+    """
+    A plugin's __init__.py must implement a function named get_parser() which return the implementation of this class.
+    """
     def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH) -> None: ...
 
     @abstractmethod
@@ -70,6 +73,11 @@ class AppBase(metaclass=ABCMeta):
     @abstractmethod
     def plugin_init():
         """Account setup, networking, etc. required to use plugin"""
+        ...
+
+    @abstractmethod
+    def plugin_destroy(self):
+        """ delete all resources associated with the plugin"""
         ...
 
     @abstractmethod
