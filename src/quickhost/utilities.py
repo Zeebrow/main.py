@@ -17,15 +17,16 @@ import datetime
 import logging
 import urllib.request
 
+
 def scrub_datetime(thing):
     """
     Remove all datetime objects from a dict, and convert them to a string
     """
     if isinstance(thing, dict):
-        for k,v in thing.items():
+        for k, v in thing.items():
             thing[k] = scrub_datetime(v)
     elif isinstance(thing, list):
-        for i,a in enumerate(thing):
+        for i, a in enumerate(thing):
             thing[i] = scrub_datetime(a)
     elif isinstance(thing, datetime.datetime):
         thing = str(thing)
@@ -33,6 +34,8 @@ def scrub_datetime(thing):
         return thing
     return thing
 
+
+# @@@ testme
 def get_my_public_ip() -> str:
     # what could possibly be better?!
     try:
@@ -45,19 +48,19 @@ def get_my_public_ip() -> str:
 
 class QHLogFormatter(logging.Formatter):
     """
-    Shamelessly pilfered from 
+    Shamelessly pilfered from
     https://stackoverflow.com/questions/14844970/modifying-logging-message-format-based-on-message-logging-level-in-python3#14859558
     """
-    ErrorFormat='%(levelname)s: %(message)s'
+    ErrorFormat = '%(levelname)s: %(message)s'
     CriticalFormat = ErrorFormat
     WarningFormat = ErrorFormat
     InfoFormat = ErrorFormat
-    DebugFormat='%(asctime)s : %(name)s : %(funcName)s : %(levelname)s: %(message)s'
-    ErrorFormatColor='\033[31m%(levelname)s:\033[0m %(message)s'
+    DebugFormat = '%(asctime)s : %(name)s : %(funcName)s : %(levelname)s: %(message)s'
+    ErrorFormatColor = '\033[31m%(levelname)s:\033[0m %(message)s'
     CriticalFormatColor = ErrorFormatColor
-    WarningFormatColor='\033[93m%(levelname)s:\033[0m %(message)s'
-    InfoFormatColor='\033[33m%(levelname)s:\033[0m %(message)s'
-    DebugFormatColor='\033[94m%(asctime)s : %(name)s : %(funcName)s : %(levelname)s:\033[0m %(message)s'
+    WarningFormatColor = '\033[93m%(levelname)s:\033[0m %(message)s'
+    InfoFormatColor = '\033[33m%(levelname)s:\033[0m %(message)s'
+    DebugFormatColor = '\033[94m%(asctime)s : %(name)s : %(funcName)s : %(levelname)s:\033[0m %(message)s'
 
     def __init__(self, color=False):
         self.colored_output = color
@@ -86,4 +89,3 @@ class QHLogFormatter(logging.Formatter):
                 case (logging.ERROR | logging.CRITICAL):
                     self._style._fmt = QHLogFormatter.ErrorFormat
         return super().format(record)
-

@@ -1,3 +1,4 @@
+# flake8: noqa: F401
 # Copyright (C) 2022 zeebrow
 
 # This program is free software: you can redistribute it and/or modify

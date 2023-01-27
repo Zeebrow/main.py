@@ -13,13 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import List
-from dataclasses import dataclass
 import argparse
 from abc import ABCMeta, abstractmethod, abstractclassmethod
 import configparser
 import logging
-from pathlib import Path
 
 from .constants import APP_CONST as C
 
@@ -30,29 +27,38 @@ class AppConfigFileParser(configparser.ConfigParser):
     def __init__(self):
         super().__init__(allow_no_value=True)
 
+
 class ParserBase(metaclass=ABCMeta):
     """
     A plugin's __init__.py must implement a function named get_parser() which return the implementation of this class.
     """
-    def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH) -> None: ...
+    def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH) -> None:
+        ...
 
     @abstractmethod
-    def add_subparsers(self, parser: argparse.ArgumentParser) -> None: ...
+    def add_subparsers(self, parser: argparse.ArgumentParser) -> None:
+        ...
 
     @abstractmethod
-    def add_init_parser_arguments(self, parser: argparse.ArgumentParser) -> None: ...
+    def add_init_parser_arguments(self, parser: argparse.ArgumentParser) -> None:
+        ...
 
     @abstractmethod
-    def add_make_parser_arguments(self, parser: argparse.ArgumentParser) -> None: ...
+    def add_make_parser_arguments(self, parser: argparse.ArgumentParser) -> None:
+        ...
 
     @abstractmethod
-    def add_describe_parser_arguments(self, parser: argparse.ArgumentParser) -> None: ...
+    def add_describe_parser_arguments(self, parser: argparse.ArgumentParser) -> None:
+        ...
 
     @abstractmethod
-    def add_update_parser_arguments(self, parser: argparse.ArgumentParser) -> None: ...
+    def add_update_parser_arguments(self, parser: argparse.ArgumentParser) -> None:
+        ...
 
     @abstractmethod
-    def add_destroy_parser_arguments(self, parser: argparse.ArgumentParser) -> None: ...
+    def add_destroy_parser_arguments(self, parser: argparse.ArgumentParser) -> None:
+        ...
+
 
 class AppBase(metaclass=ABCMeta):
     """
@@ -60,10 +66,11 @@ class AppBase(metaclass=ABCMeta):
 
     This way, you can implement a method and assign the results of AWS functions to this class' properties for reuse.
 
-    Using the `app_name` as a key, caching may be implemented. 
+    Using the `app_name` as a key, caching may be implemented.
     """
     @abstractmethod
-    def __init__(self, app_name: str, config_file=C.DEFAULT_CONFIG_FILEPATH): ...
+    def __init__(self, app_name: str, config_file=C.DEFAULT_CONFIG_FILEPATH):
+        ...
 
     @abstractmethod
     def load_default_config(self):
@@ -94,7 +101,7 @@ class AppBase(metaclass=ABCMeta):
     def update(self):
         """change the hosts in some way"""
         ...
-        
+
     @abstractmethod
     def destroy(self):
         """ delete all hosts associated with your app """

@@ -17,13 +17,11 @@ import logging
 from importlib import metadata
 import sys
 from collections import defaultdict
-import json
 
-from .quickhost_app_base import AppBase
 from .constants import QHExit
 
-
 logger = logging.getLogger(__name__)
+
 
 class QHPlugin:
     """
@@ -40,21 +38,21 @@ class QHPlugin:
         if sys.version_info.minor < 10:
             plugin_parsers = metadata.entry_points()['quickhost_plugin']
         else:
-            plugin_parsers = metadata.entry_points().select(group=f"quickhost_plugin")
+            plugin_parsers = metadata.entry_points().select(group="quickhost_plugin")
 
         # sift through plugins, organize by cloud provider and return
         for p in plugin_parsers:
             provider_name = p.name.split('_')[0]
             plugin_type = p.name.split('_')[1]
             if plugin_type == 'app':
-                plugins[provider_name]['app'] =  p.load()
+                plugins[provider_name]['app'] = p.load()
             elif plugin_type == 'parser':
-                plugins[provider_name]['parser'] =  p.load()
+                plugins[provider_name]['parser'] = p.load()
             else:
                 logger.warning(f"Unknown plugin type '{plugin_type}'")
-        #print(plugins)
-        #print(dict(plugins))
+        # print(plugins)
+        # print(dict(plugins))
         if dict(plugin_parsers) == {}:
-            logger.error(f"No plugins are installed!")
+            logger.error("No plugins are installed!")
             sys.exit(QHExit.GENERAL_FAILURE)
         return dict(plugins)

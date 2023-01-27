@@ -22,25 +22,26 @@ from time import perf_counter
 logger = logging.getLogger(__name__)
 
 TOTAL_RUNTIME = 0
-MAX_FILE_SIZE_BYTES = 10_000_000 #~10MB
+MAX_FILE_SIZE_BYTES = 10_000_000  # ~10MB
+
 
 def store_test_data(resource: str, action: str, response_data: dict):
     global TOTAL_RUNTIME
     t_start = perf_counter()
     cwd = Path(os.getcwd())
-    if not (cwd.stem == 'aws' or cwd.stem == 'quickhost'): 
+    if not (cwd.stem == 'aws' or cwd.stem == 'quickhost'):
         logger.debug(f"refusing to run from directory {cwd.stem}")
         return
 
-    data_dir = cwd/"tests/data/mock-data"
+    data_dir = cwd / "tests/data/mock-data"
 
     if not data_dir.exists():
         data_dir.mkdir(parents=True)
-    if type(response_data) != type({}):
-        logger.debug(f"didn't get a dict, got a {type(response)}")
+    if isinstance(response_data, dict):
+        logger.debug(f"didn't get a dict, got a {type(response_data)}")
         return False
 
-    d = Path(data_dir) / resource 
+    d = Path(data_dir) / resource
     if not d.exists():
         d.mkdir()
     fp = d / f"{action}.json"
@@ -65,23 +66,6 @@ def store_test_data(resource: str, action: str, response_data: dict):
         TOTAL_RUNTIME,
         resource,
         fp.stem,
-        fp.stat().st_size/1024
+        fp.stat().st_size / 1024
     ))
     return True
-    
-    
-
-if __name__ == '__main__':
-    store_test_data(resource='blabla', action='test', response_data={'data':'True'})
-
-    @get_test_data
-    def asdf(a):
-        print(f'asdf: {a}')
-        return
-    asdf('asddfasdfasdf')
-
-    class A:
-        def dostuff():
-            print('doin stuff')
-            return
-        
