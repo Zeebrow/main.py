@@ -13,38 +13,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import pytest
+from quickhost import QHPlugin
+from quickhost_null import NullApp, NullParser
 
-from quickhost import QHPlugin, AppBase
-
-import argparse
+PLUGIN_NAME = 'null'
 
 
 def test_null_plugin_loads():
     plugins = QHPlugin.load_all_plugins()
-    assert 'null' in plugins.keys()
+    assert PLUGIN_NAME in plugins.keys()
 
 
 def test_load_plugin_returns_app_class():
     plugins = QHPlugin.load_all_plugins()
-    null_app_class = plugins['null']['app']()
-    assert type(null_app_class) == type(AppBase)
-    # @@@
-    # null_app_instance = null_app_class(app_name="some-app")
-    # assert type(null_app_class) == type(NullApp)
+    null_app_class = plugins[PLUGIN_NAME]['app']()
+    null_app_instance = null_app_class('some-app')
+    assert isinstance(null_app_instance, NullApp)
 
 
-def test_load_plugin_parser():
+def test_load_plugin_returns_plugin_parser():
     plugins = QHPlugin.load_all_plugins()
-    null_app_parser = plugins['null']['parser']()()
-    print(type(null_app_parser))
-
-
-@pytest.mark.skip
-def test_plugin_parser_provides_app_name_arg(self):
-    for action in ['make', 'describe', 'update', 'destroy']:
-        parser = argparse.ArgumentParser(self._testMethodName)
-        plugins = QHPlugin.load_all_plugins()
-        null_parser = plugins['null']['parser']()()
-        null_parser.add_parser_arguments(action, parser)
-        args = parser.parse_args(['--app-name', 'test_app_name'])
-        self.assertIsNotNone(args.app_name)
+    null_app_parser = plugins[PLUGIN_NAME]['parser']()()
+    assert isinstance(null_app_parser, NullParser)

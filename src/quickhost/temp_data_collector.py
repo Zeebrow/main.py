@@ -37,7 +37,7 @@ def store_test_data(resource: str, action: str, response_data: dict):
 
     if not data_dir.exists():
         data_dir.mkdir(parents=True)
-    if isinstance(response_data, dict):
+    if not isinstance(response_data, dict):
         logger.debug(f"didn't get a dict, got a {type(response_data)}")
         return False
 
