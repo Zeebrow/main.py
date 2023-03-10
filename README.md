@@ -20,8 +20,9 @@ options:
 
 ## ~~Build~~
 
-### pyinstaller
+### ~~pyinstaller~~
 
+#### do this
 ```
 git clone https://github.com/zeebrow/quickhost.git
 git clone https://github.com/zeebrow/quickhost-plugins.git
