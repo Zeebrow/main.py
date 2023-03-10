@@ -5,16 +5,22 @@ Make a publically accessible host, quickly.
 ## Usage
 
 ```
-$ main.py -h
-usage: main.py [-h] [-f CONFIG_FILE] {aws,null} ...
+$ main.py null -h
+usage: main.py null [-h] {init,make,describe,update,destroy,list-all,destroy-all} ...
 
 positional arguments:
-  {aws,null}
+  {init,make,describe,update,destroy,list-all,destroy-all}
+    init                plugin initialization help
+    make                make an app help
+    describe            show details about an app help
+    update              change an app help
+    destroy             destroy an app help
+    list-all            list all running apps
+    destroy-all         remove the plugin help
 
 options:
   -h, --help            show this help message and exit
-  -f CONFIG_FILE, --config-file CONFIG_FILE
-                        Use an alternative configuration file to override the default.
+
 ```
 
 
