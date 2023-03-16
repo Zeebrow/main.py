@@ -25,16 +25,27 @@ main.py
 2. Load all available plugins
 3. Choose a plugin and load it
 4. Add the plugin's arguments to the top-level parser
-5. Create an instance of BaseApp with CLI args + config file
+5. Create an instance of BaseApp with CLI args
 """
 
 logger = logging.getLogger()
 
 
-def do_logging(level="AAAAAAAAAA ARGPARSE WHY ARE YOU LIKE THIS"):
+def do_logging(level: int):
+    if not level:
+        level = 0
+    if level > 2:
+        level = 2
+    verbosity = {
+        0: logging.ERROR,
+        1: logging.INFO,
+        2: logging.DEBUG,
+    }
     global logger
+
     sh = logging.StreamHandler()
-    logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(verbosity[level])
     logging.getLogger("botocore").setLevel(logging.WARNING)
     logging.getLogger("boto3").setLevel(logging.INFO)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -51,16 +62,17 @@ This is free software, and you are welcome to redistribute it
 under certain conditions; type `show c' for details.
     """)
 
+def get_main_parser():
+    parser = argparse.ArgumentParser(description="make easily managed hosts, quickly", add_help=False)
+    parser.add_argument("-h", "--help", action='store_true', required=False, help="help")
+    parser.add_argument("--version", action='store_true', required=False, help="display version information")
+    parser.add_argument("-v", dest='verbosity', action='count', default=0, required=False, help="output verbosity")
+    return parser
 
 def cli_main():
     plugins = QHPlugin.load_all_plugins()
-#######################################################################################
-# main argument parser
-#######################################################################################
-    app_parser = argparse.ArgumentParser(description="make easily managed hosts, quickly", add_help=False)
-    app_parser.add_argument("-h", "--help", action='store_true', required=False, help="help")
+    app_parser = get_main_parser()
 
-    do_logging()
 
     main_subparser = app_parser.add_subparsers(dest='main')
     for k, v in plugins.items():
@@ -69,11 +81,24 @@ def cli_main():
         plugin_parser_class.add_subparsers(plugin_subparser)
 
     args = vars(app_parser.parse_args())
+    print(args)
+
+    do_logging(args['verbosity'])
+    logger.debug(f"{args=}")
+
+    if args['version']:
+        from importlib.metadata import version
+        return (version('quickhost'), '', 0)
+
+    if dict(plugins) == {}:
+        app_parser.print_help()
+        return ('', "No plugins are installed! Try pip install --user quickhost-aws", 1)
 
     tgt_plugin = args.pop("main")
     if tgt_plugin is None:
         app_parser.print_help()
-        exit(1)
+        raise SystemExit(1)
+
     app_name = None  # @@@
     if 'app_name' in args.keys():  # @@@
         app_name = args.pop("app_name")  # @@@
@@ -97,16 +122,16 @@ def cli_main():
         case 'destroy-all':
             logger.info("Destroy all {} apps".format(app_class.__name__))
             if not args['yes']:
+                print("You are about to remove all apps associated with the %s plugin." % app_class.__name__)
                 are_you_sure = input("Are you sure? (y/N): ")
                 if are_you_sure not in ["y", "Y", "yes", "YES"]:
-                    print("Aborted")
                     logger.info("User aborted.")
-                    exit(0)
+                    return "Aborted", '', 0
             return app_class.destroy_all()
         case 'destroy-plugin':
             logger.info("Destroy plugin '{}'".format(app_class.__name__))
             if not args['yes']:
-                logger.info("You are about to remove all apps and resources associated with the %s plugin." % app_class.__name__)
+                print("You are about to remove all apps and resources associated with the %s plugin." % app_class.__name__)
                 are_you_sure = input("Are you sure? (y/N): ")
                 if are_you_sure not in ["y", "Y", "yes", "YES"]:
                     print("Aborted")
@@ -114,7 +139,7 @@ def cli_main():
                     exit(0)
             logger.info("Uninstalling plugin '{}'".format(app_class.__name__))
             app_instance.plugin_destroy(args)
-            exit()
+            return '', '', 0
 
 
 fd1, fd2, rc = cli_main()
@@ -122,4 +147,4 @@ if fd1:
     sys.stdout.write("\033[32m{}\033[0m".format(fd1) + "\n")
 if fd2:
     sys.stderr.write("\033[31mERROR:\033[0m" + fd2 + "\n")
-sys.exit(rc)
+raise SystemExit(rc)

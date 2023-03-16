@@ -52,7 +52,4 @@ class QHPlugin:
                 logger.warning(f"Unknown plugin type '{plugin_type}'")
         # print(plugins)
         # print(dict(plugins))
-        if dict(plugin_parsers) == {}:
-            logger.error("No plugins are installed!")
-            sys.exit(QHExit.GENERAL_FAILURE)
         return dict(plugins)
