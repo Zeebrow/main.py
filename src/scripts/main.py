@@ -73,18 +73,16 @@ def cli_main():
     plugins = QHPlugin.load_all_plugins()
     app_parser = get_main_parser()
 
-
-    main_subparser = app_parser.add_subparsers(dest='main')
+    main_subparser = app_parser.add_subparsers(dest='plugin')
     for k, v in plugins.items():
         plugin_subparser = main_subparser.add_parser(k)
         plugin_parser_class: ParserBase = v['parser']()()
         plugin_parser_class.add_subparsers(plugin_subparser)
 
     args = vars(app_parser.parse_args())
-    print(args)
 
     do_logging(args['verbosity'])
-    logger.debug(f"{args=}")
+    logger.debug("cli args={}".format(args))
 
     if args['version']:
         from importlib.metadata import version
@@ -94,15 +92,18 @@ def cli_main():
         app_parser.print_help()
         return ('', "No plugins are installed! Try pip install --user quickhost-aws", 1)
 
-    tgt_plugin = args.pop("main")
+    tgt_plugin = args.pop('plugin')
+    logger.debug(f"{tgt_plugin=}")
     if tgt_plugin is None:
         app_parser.print_help()
-        raise SystemExit(1)
+        return ('', f"Provide a plugin {[k for k in plugins.keys()]}", 1)
 
     app_name = None  # @@@
     if 'app_name' in args.keys():  # @@@
         app_name = args.pop("app_name")  # @@@
+    logger.debug(f"{app_name=}")
     action = args.pop(tgt_plugin)
+    logger.debug(f"{action=}")
     app_class: AppBase = plugins[tgt_plugin]['app']()
     app_instance: AppBase = app_class(app_name)
 
@@ -126,7 +127,7 @@ def cli_main():
                 are_you_sure = input("Are you sure? (y/N): ")
                 if are_you_sure not in ["y", "Y", "yes", "YES"]:
                     logger.info("User aborted.")
-                    return "Aborted", '', 0
+                    return ("Aborted", '', 0)
             return app_class.destroy_all()
         case 'destroy-plugin':
             logger.info("Destroy plugin '{}'".format(app_class.__name__))
@@ -134,12 +135,17 @@ def cli_main():
                 print("You are about to remove all apps and resources associated with the %s plugin." % app_class.__name__)
                 are_you_sure = input("Are you sure? (y/N): ")
                 if are_you_sure not in ["y", "Y", "yes", "YES"]:
-                    print("Aborted")
                     logger.info("User aborted.")
-                    exit(0)
+                    return ('aborted', '', 0)
             logger.info("Uninstalling plugin '{}'".format(app_class.__name__))
             app_instance.plugin_destroy(args)
-            return '', '', 0
+            return ('', '', 0)
+        case None:
+            app_parser.print_help()
+            return ('', "No action provided", 1)
+        case _:
+            app_parser.print_help()
+            return ('', f"Invalid action: '{action}'", 1)
 
 
 fd1, fd2, rc = cli_main()
