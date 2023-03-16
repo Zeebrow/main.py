@@ -121,28 +121,12 @@ def cli_main():
         case 'list-all':
             return app_class.list_all()
         case 'destroy-all':
-            logger.info("Destroy all {} apps".format(app_class.__name__))
-            if not args['yes']:
-                print("You are about to remove all apps associated with the %s plugin." % app_class.__name__)
-                are_you_sure = input("Are you sure? (y/N): ")
-                if are_you_sure not in ["y", "Y", "yes", "YES"]:
-                    logger.info("User aborted.")
-                    return ("Aborted", '', 0)
             return app_class.destroy_all()
         case 'destroy-plugin':
-            logger.info("Destroy plugin '{}'".format(app_class.__name__))
-            if not args['yes']:
-                print("You are about to remove all apps and resources associated with the %s plugin." % app_class.__name__)
-                are_you_sure = input("Are you sure? (y/N): ")
-                if are_you_sure not in ["y", "Y", "yes", "YES"]:
-                    logger.info("User aborted.")
-                    return ('aborted', '', 0)
-            logger.info("Uninstalling plugin '{}'".format(app_class.__name__))
-            app_instance.plugin_destroy(args)
-            return ('', '', 0)
+            return app_instance.plugin_destroy(args)
         case None:
             app_parser.print_help()
-            return ('', "No action provided", 1)
+            return ('', f"No action provided (try quickhost {tgt_plugin} -h)", 1)
         case _:
             app_parser.print_help()
             return ('', f"Invalid action: '{action}'", 1)
