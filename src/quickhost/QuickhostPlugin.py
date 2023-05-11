@@ -17,10 +17,21 @@ import logging
 from importlib import metadata
 import sys
 from collections import defaultdict
+from dataclasses import dataclass
 
-from .constants import QHExit
+from .quickhost_app_base import AppBase, ParserBase
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Plugin:
+    """
+    Container object for plugin-loading functions
+    """
+    name: str
+    app: AppBase
+    parser: ParserBase
 
 
 class QHPlugin:
@@ -31,8 +42,22 @@ class QHPlugin:
     """
 
     @classmethod
-    def load_all_plugins(self):
-        # plugins= {'aws': {'app': asdf[0].load(), 'parser': asdf[1].load()}}
+    def try_load_plugin(cls, plugin_name: str) -> Plugin:
+        """
+        returns a plugin
+
+        This is meant to be used by plugins to provide a shortcut script,
+        `quickhost-<plugin_name>`, so we know ahead of time which plugin we want to try
+        and load, and that it will definitely exist.
+        """
+        plugin_groups = metadata.entry_points().select(group='quickhost_plugin')
+        app = plugin_groups.select(name='pve_app')[plugin_name + "_app"].load()()
+        parser = plugin_groups.select(name='pve_parser')[plugin_name + "_parser"].load()()
+        return Plugin(plugin_name, app, parser)
+
+    @classmethod
+    def load_all_plugins(cls) -> dict[str, Plugin]:
+        """returns a dictionary mapping installed plugin names to a Plugin object"""
         plugins = defaultdict(dict)
 
         if sys.version_info.minor < 10:
@@ -45,11 +70,12 @@ class QHPlugin:
             provider_name = p.name.split('_')[0]
             plugin_type = p.name.split('_')[1]
             if plugin_type == 'app':
-                plugins[provider_name]['app'] = p.load()
+                plugins[provider_name]['app'] = p.load()()
             elif plugin_type == 'parser':
-                plugins[provider_name]['parser'] = p.load()
+                plugins[provider_name]['parser'] = p.load()()
             else:
                 logger.warning(f"Unknown plugin type '{plugin_type}'")
-        # print(plugins)
-        # print(dict(plugins))
-        return dict(plugins)
+        plugins_list: dict[str, Plugin] = {
+                p: Plugin(p, plugins[p]['app'], plugins[p]['parser']) for p in plugins.keys()  # noqa: E126
+        }
+        return dict(plugins_list)

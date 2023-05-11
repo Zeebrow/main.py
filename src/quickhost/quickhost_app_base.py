@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
-from abc import ABCMeta, abstractmethod, abstractclassmethod
+from abc import abstractmethod, abstractclassmethod
 import configparser
 import logging
 
@@ -28,11 +28,12 @@ class AppConfigFileParser(configparser.ConfigParser):
         super().__init__(allow_no_value=True)
 
 
-class ParserBase(metaclass=ABCMeta):
+class ParserBase():
     """
     A plugin's __init__.py must implement a function named get_parser() which return the implementation of this class.
     """
-    def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH) -> None:
+    @abstractmethod
+    def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH):
         ...
 
     @abstractmethod
@@ -60,7 +61,7 @@ class ParserBase(metaclass=ABCMeta):
         ...
 
 
-class AppBase(metaclass=ABCMeta):
+class AppBase():
     """
     The idea is to use a class as a place to stuff your CLI arguments.
 
@@ -78,7 +79,7 @@ class AppBase(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def plugin_init():
+    def plugin_init(self):
         """Account setup, networking, etc. required to use plugin"""
         ...
 
@@ -108,6 +109,11 @@ class AppBase(metaclass=ABCMeta):
         ...
 
     @abstractclassmethod
-    def list_all(self):
+    def list_all(cls):
+        """ list a plugins running app hosts """
+        ...
+
+    @abstractclassmethod
+    def destroy_all(cls):
         """ list a plugins running app hosts """
         ...
