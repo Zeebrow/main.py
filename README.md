@@ -31,7 +31,7 @@ options:
 #### do this
 ```
 git clone https://github.com/zeebrow/quickhost.git
-git clone https://github.com/zeebrow/quickhost-plugins.git
+git clone https://github.com/zeebrow/quickhost-aws.git plugins/aws
 python3 -m venv venv && source venv/bin/activate
 pip install -e quickhost
 pip install -e quickhost-plugins/plugins/aws
