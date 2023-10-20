@@ -26,6 +26,29 @@ options:
 
 ## ~~Build~~
 
+### Python 3.7, 3.8
+
+i dunno tox :( 
+
+
+install Python, e.g.
+
+`sudo apt-get install python3.8`
+
+install pip
+
+```
+sudo apt install python3.8-distutils
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3.8 get-pip.py
+```
+
+and your choice of venv
+
+```
+sudo apt install python3.8-venv
+```
+
 ### ~~pyinstaller~~
 
 #### do this

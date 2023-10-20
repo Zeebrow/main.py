@@ -105,36 +105,35 @@ def cli(plugin_name: str) -> CliResponse:
     args = vars(plugin_parser.parse_args(plugin_args))
 
     action = args.pop(plugin_name)
-    logger.debug(f"{action=}")
+    logger.debug("action={}".format(action))
 
     app_class: AppBase = plugin.app
     app_instance: AppBase = app_class(plugin.name)  # pyright: ignore
 
-    match action:
-        case 'init':
-            return app_instance.plugin_init(args)  # pyright: ignore
-        case 'make':
-            return app_instance.create(args)  # pyright: ignore
-        case 'describe':
-            return app_instance.describe(args)  # pyright: ignore
-        case 'destroy':
-            return app_instance.destroy(args)  # pyright: ignore
-        case 'update':
-            return app_instance.update(args)  # pyright: ignore
-        case 'list-all':
-            return app_class.list_all()  # pyright: ignore
-        case 'destroy-all':
-            return app_class.destroy_all()  # pyright: ignore
-        case 'destroy-plugin':
-            return app_instance.plugin_destroy(args)  # pyright: ignore
-        case 'help':
-            # @@@want: something for the Cobra-style commander users
-            app_parser.print_help()
-            return CliResponse('', 'For help on a specific action, use -h.', 1)
-        case None:
-            # unreachable
-            app_parser.print_help()
-            return CliResponse('', "Bug! action was 'None'", 1)
-        case _:
-            app_parser.print_help()
-            return CliResponse('', f"Invalid action: '{action}'", 1)
+    if action == 'init':
+        return app_instance.plugin_init(args)  # pyright: ignore
+    elif action == 'make':
+        return app_instance.create(args)  # pyright: ignore
+    elif action == 'describe':
+        return app_instance.describe(args)  # pyright: ignore
+    elif action == 'destroy':
+        return app_instance.destroy(args)  # pyright: ignore
+    elif action == 'update':
+        return app_instance.update(args)  # pyright: ignore
+    elif action == 'list-all':
+        return app_class.list_all()  # pyright: ignore
+    elif action == 'destroy-all':
+        return app_class.destroy_all()  # pyright: ignore
+    elif action == 'destroy-plugin':
+        return app_instance.plugin_destroy(args)  # pyright: ignore
+    elif action == 'help':
+        # @@@want: something for the Cobra-style commander users
+        app_parser.print_help()
+        return CliResponse('', 'For help on a specific action, use -h.', 1)
+    elif action is None:
+        # unreachable
+        app_parser.print_help()
+        return CliResponse('', "Bug! action was 'None'", 1)
+    else:
+        app_parser.print_help()
+        return CliResponse('', f"Invalid action: '{action}'", 1)

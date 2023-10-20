@@ -14,8 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from importlib import metadata
 import sys
+
+if sys.version_info.minor == 7:
+    import pkgutil
+else:
+    from importlib import metadata
+
+import typing as t
+
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -35,39 +42,36 @@ class Plugin:
 
 
 class QHPlugin:
-    """
-    for python < 3.10
-    https://bugs.python.org/issue44246
-    https://github.com/python/importlib_metadata/pull/278/files#
-    """
 
     @classmethod
-    def try_load_plugin(cls, plugin_name: str) -> Plugin:
-        """
-        returns a plugin
-
-        This is meant to be used by plugins to provide a shortcut script,
-        `quickhost-<plugin_name>`, so we know ahead of time which plugin we want to try
-        and load, and that it will definitely exist.
-        """
-        plugin_groups = metadata.entry_points().select(group='quickhost_plugin')
-        app = plugin_groups.select(name='pve_app')[plugin_name + "_app"].load()()
-        parser = plugin_groups.select(name='pve_parser')[plugin_name + "_parser"].load()()
-        return Plugin(plugin_name, app, parser)
-
-    @classmethod
-    def load_all_plugins(cls) -> dict[str, Plugin]:
+    def load_all_plugins(cls) -> t.Dict[str, Plugin]:
         """returns a dictionary mapping installed plugin names to a Plugin object"""
         plugins = defaultdict(dict)
 
-        if sys.version_info.minor < 10:
+        if sys.version_info.minor == 7:
+            plugins = defaultdict(dict)
+            for p in pkgutil.walk_packages():
+                if p.name.startswith('quickhost_') and p.ispkg:
+                    l = pkgutil.get_loader(p.name).load_module()  # noqa: E741
+                    # found in plugin's __init__.py
+                    provider_name = p.name.split('_')[1]
+                    app = l.load_plugin()
+                    parser = l.get_parser()
+                    plugins[provider_name] = Plugin(name=provider_name, app=app, parser=parser)
+
+            return dict(plugins)
+
+        elif sys.version_info.minor > 7 and sys.version_info.minor < 10:
             plugin_parsers = metadata.entry_points()['quickhost_plugin']
         else:
             plugin_parsers = metadata.entry_points().select(group="quickhost_plugin")
 
         # sift through plugins, organize by cloud provider and return
         for p in plugin_parsers:
+            # see plugin's setup.py
+            # 'aws'
             provider_name = p.name.split('_')[0]
+            # 'app' or 'parser'
             plugin_type = p.name.split('_')[1]
             if plugin_type == 'app':
                 plugins[provider_name]['app'] = p.load()()
@@ -75,7 +79,7 @@ class QHPlugin:
                 plugins[provider_name]['parser'] = p.load()()
             else:
                 logger.warning(f"Unknown plugin type '{plugin_type}'")
-        plugins_list: dict[str, Plugin] = {
+        plugins_list: t.Dict[str, Plugin] = {
                 p: Plugin(p, plugins[p]['app'], plugins[p]['parser']) for p in plugins.keys()  # noqa: E126
         }
         return dict(plugins_list)

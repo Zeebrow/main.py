@@ -48,15 +48,18 @@ def cli_main() -> CliResponse:
     logger.debug("cli args={}".format(args))
 
     if args['version']:
-        from importlib.metadata import version
-        return CliResponse(version('quickhost'), '', 0)
+        if sys.version_info.minor > 7:
+            from importlib.metadata import version
+            return CliResponse(version('quickhost'), '', 0)
+        else:
+            return CliResponse('', 'package info not available for Python {}.{}'.format(sys.version_info.major, sys.version_info.minor), 1)
 
     if dict(plugins) == {}:
         app_parser.print_help()
         return CliResponse('', "No plugins are installed! Try pip install --user quickhost-aws", 1)
 
     tgt_plugin = args.pop('plugin')
-    logger.debug(f"{tgt_plugin=}")
+    logger.debug(f"{tgt_plugin}")
     if tgt_plugin is None:
         app_parser.print_help()
         return CliResponse('', f"Provide a plugin {[k for k in plugins.keys()]}", 1)
@@ -64,35 +67,34 @@ def cli_main() -> CliResponse:
     app_name = None  # @@@
     if 'app_name' in args.keys():  # @@@
         app_name = args.pop("app_name")  # @@@
-    logger.debug(f"{app_name=}")
+    logger.debug("app_name={}".format(app_name))
     action = args.pop(tgt_plugin)
-    logger.debug(f"{action=}")
+    logger.debug("action={}".format(action))
     app_class: AppBase = plugins[tgt_plugin].app
     app_instance: Type[AppBase] = app_class(app_name)  # pyright: ignore
 
-    match action:
-        case 'init':
-            return app_instance.plugin_init(args)  # pyright: ignore
-        case 'make':
-            return app_instance.create(args)  # pyright: ignore
-        case 'describe':
-            return app_instance.describe(args)  # pyright: ignore
-        case 'destroy':
-            return app_instance.destroy(args)  # pyright: ignore
-        case 'update':
-            return app_instance.update(args)  # pyright: ignore
-        case 'list-all':
-            return app_class.list_all()  # pyright: ignore
-        case 'destroy-all':
-            return app_class.destroy_all()  # pyright: ignore
-        case 'destroy-plugin':
-            return app_instance.plugin_destroy(args)  # pyright: ignore
-        case None:
-            app_parser.print_help()
-            return CliResponse('', f"No action provided (try quickhost {tgt_plugin} -h)", 1)
-        case _:
-            app_parser.print_help()
-            return CliResponse('', f"Invalid action: '{action}'", 1)
+    if action == 'init':
+        return app_instance.plugin_init(args)  # pyright: ignore
+    elif action == 'make':
+        return app_instance.create(args)  # pyright: ignore
+    elif action == 'describe':
+        return app_instance.describe(args)  # pyright: ignore
+    elif action == 'destroy':
+        return app_instance.destroy(args)  # pyright: ignore
+    elif action == 'update':
+        return app_instance.update(args)  # pyright: ignore
+    elif action == 'list-all':
+        return app_class.list_all()  # pyright: ignore
+    elif action == 'destroy-all':
+        return app_class.destroy_all()  # pyright: ignore
+    elif action == 'destroy-plugin':
+        return app_instance.plugin_destroy(args)  # pyright: ignore
+    elif action is None:
+        app_parser.print_help()
+        return CliResponse('', f"No action provided (try quickhost {tgt_plugin} -h)", 1)
+    else:
+        app_parser.print_help()
+        return CliResponse('', f"Invalid action: '{action}'", 1)
 
 
 fd1, fd2, rc = cli_main()

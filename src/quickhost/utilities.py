@@ -69,23 +69,21 @@ class QHLogFormatter(logging.Formatter):
     def format(self, record):
         # orig_fmt = self._style._fmt
         if self.colored_output:
-            match record.levelno:
-                case logging.DEBUG:
-                    self._style._fmt = QHLogFormatter.DebugFormatColor
-                case logging.INFO:
-                    self._style._fmt = QHLogFormatter.InfoFormatColor
-                case logging.WARNING:
-                    self._style._fmt = QHLogFormatter.WarningFormatColor
-                case (logging.ERROR | logging.CRITICAL):
-                    self._style._fmt = QHLogFormatter.ErrorFormatColor
+            if record.levelno == logging.DEBUG:
+                self._style._fmt = QHLogFormatter.DebugFormatColor
+            elif record.levelno == logging.INFO:
+                self._style._fmt = QHLogFormatter.InfoFormatColor
+            elif record.levelno == logging.WARNING:
+                self._style._fmt = QHLogFormatter.WarningFormatColor
+            elif record.levelno == (logging.ERROR | logging.CRITICAL):
+                self._style._fmt = QHLogFormatter.ErrorFormatColor
         else:
-            match record.levelno:
-                case logging.DEBUG:
-                    self._style._fmt = QHLogFormatter.DebugFormat
-                case logging.INFO:
-                    self._style._fmt = QHLogFormatter.InfoFormat
-                case logging.WARNING:
-                    self._style._fmt = QHLogFormatter.WarningFormat
-                case (logging.ERROR | logging.CRITICAL):
-                    self._style._fmt = QHLogFormatter.ErrorFormat
+            if record.levelno == logging.DEBUG:
+                self._style._fmt = QHLogFormatter.DebugFormat
+            elif record.levelno == logging.INFO:
+                self._style._fmt = QHLogFormatter.InfoFormat
+            elif record.levelno == logging.WARNING:
+                self._style._fmt = QHLogFormatter.WarningFormat
+            elif record.levelno == (logging.ERROR | logging.CRITICAL):
+                self._style._fmt = QHLogFormatter.ErrorFormat
         return super().format(record)
