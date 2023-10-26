@@ -19,4 +19,4 @@ from .constants import APP_CONST, QHExit
 from .utilities import get_my_public_ip, scrub_datetime, QHLogFormatter
 from .temp_data_collector import store_test_data
 from .QuickhostPlugin import QHPlugin, Plugin
-from .Cli import cli, CliResponse
+from .Cli import CliResponse

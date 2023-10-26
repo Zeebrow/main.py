@@ -30,34 +30,37 @@ from .quickhost_app_base import AppBase, ParserBase
 
 logger = logging.getLogger(__name__)
 
+PluginName = str
 
 @dataclass
 class Plugin:
     """
     Container object for plugin-loading functions
     """
-    name: str
+    name: PluginName
+    package_name: str
+    version: str
     app: AppBase
     parser: ParserBase
 
 
 class QHPlugin:
-
     @classmethod
-    def load_all_plugins(cls) -> t.Dict[str, Plugin]:
+    def load_all_plugins(cls) -> t.Dict[PluginName, Plugin]:
         """returns a dictionary mapping installed plugin names to a Plugin object"""
         plugins = defaultdict(dict)
 
         if sys.version_info.minor == 7:
-            plugins = defaultdict(dict)
             for p in pkgutil.walk_packages():
                 if p.name.startswith('quickhost_') and p.ispkg:
                     l = pkgutil.get_loader(p.name).load_module()  # noqa: E741
                     # found in plugin's __init__.py
                     provider_name = p.name.split('_')[1]
+                    package_name = 'quickhost_' + provider_name
+                    version = "undefined"
                     app = l.load_plugin()
                     parser = l.get_parser()
-                    plugins[provider_name] = Plugin(name=provider_name, app=app, parser=parser)
+                    plugins[provider_name] = Plugin(name=provider_name, package_name=package_name, version=version, app=app, parser=parser)
 
             return dict(plugins)
 
@@ -66,11 +69,12 @@ class QHPlugin:
         else:
             plugin_parsers = metadata.entry_points().select(group="quickhost_plugin")
 
+
         # sift through plugins, organize by cloud provider and return
         for p in plugin_parsers:
-            # see plugin's setup.py
-            # 'aws'
             provider_name = p.name.split('_')[0]
+            package_name = 'quickhost_' + provider_name
+            version = metadata.version("quickhost_{}".format(provider_name))
             # 'app' or 'parser'
             plugin_type = p.name.split('_')[1]
             if plugin_type == 'app':
@@ -80,6 +84,6 @@ class QHPlugin:
             else:
                 logger.warning(f"Unknown plugin type '{plugin_type}'")
         plugins_list: t.Dict[str, Plugin] = {
-                p: Plugin(p, plugins[p]['app'], plugins[p]['parser']) for p in plugins.keys()  # noqa: E126
+                p: Plugin(name=p, package_name=package_name, version=version, app=plugins[p]['app'], parser=plugins[p]['parser']) for p in plugins.keys()  # noqa: E126
         }
         return dict(plugins_list)

@@ -59,4 +59,3 @@ python3 -m venv venv && source venv/bin/activate
 pip install -e quickhost
 pip install -e quickhost-plugins/plugins/aws
 ```
-

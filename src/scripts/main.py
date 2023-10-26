@@ -20,8 +20,7 @@ from typing import Type
 from quickhost import Cli, QHPlugin, Plugin, AppBase, ParserBase, CliResponse
 
 """
-main.py
-`console-script` entrypoint for package 'quickhost'
+`console-script` entrypoint for 'quickhost'
 """
 
 logger = logging.getLogger()
@@ -29,17 +28,14 @@ logger = logging.getLogger()
 
 def cli_main() -> CliResponse:
     plugins: dict[str, Plugin] = QHPlugin.load_all_plugins()
-    app_parser = Cli.get_main_parser()  # subject to change
+    app_parser = Cli.get_main_parser()
 
+    plugin_parsers = {}
     main_subparser = app_parser.add_subparsers(dest='plugin')
     for name, p in plugins.items():
         plugin_subparser = main_subparser.add_parser(name)
+        plugin_parsers[p.name] = plugin_subparser
         plugin_parser_class: ParserBase = p.parser
-        # @@@ pyright smells something smelly with my world-class annotations
-        # type(plugin_parser_class)=<class 'type'>
-        # type(plugin_parser_class())=<class 'quickhost_null.NullParser.NullParser'>
-        # print(f"{type(plugin_parser_class)=}")
-        # print(f"{type(plugin_parser_class())=}")  # pyright: ignore
         plugin_parser_class().add_subparsers(plugin_subparser)  # pyright: ignore
 
     args = vars(app_parser.parse_args())
@@ -50,7 +46,11 @@ def cli_main() -> CliResponse:
     if args['version']:
         if sys.version_info.minor > 7:
             from importlib.metadata import version
-            return CliResponse(version('quickhost'), '', 0)
+            response = ''
+            response += "quickhost:\t{}".format(version('quickhost'))
+            for _, p in plugins.items():
+                response += "\n{}:\t{}".format(p.package_name, p.version)
+            return CliResponse(response, '', 0)
         else:
             return CliResponse('', 'package info not available for Python {}.{}'.format(sys.version_info.major, sys.version_info.minor), 1)
 
@@ -58,9 +58,9 @@ def cli_main() -> CliResponse:
         app_parser.print_help()
         return CliResponse('', "No plugins are installed! Try pip install --user quickhost-aws", 1)
 
-    tgt_plugin = args.pop('plugin')
-    logger.debug(f"{tgt_plugin}")
-    if tgt_plugin is None:
+    tgt_plugin = args.pop('plugin', None)
+    logger.debug("tgt_plugin={}".format(tgt_plugin))
+    if not tgt_plugin:
         app_parser.print_help()
         return CliResponse('', f"Provide a plugin {[k for k in plugins.keys()]}", 1)
 
@@ -68,11 +68,14 @@ def cli_main() -> CliResponse:
     if 'app_name' in args.keys():  # @@@
         app_name = args.pop("app_name")  # @@@
     logger.debug("app_name={}".format(app_name))
+
+    # peek plugin action
     action = args.pop(tgt_plugin)
     logger.debug("action={}".format(action))
     app_class: AppBase = plugins[tgt_plugin].app
     app_instance: Type[AppBase] = app_class(app_name)  # pyright: ignore
 
+    # abc actions allowed
     if action == 'init':
         return app_instance.plugin_init(args)  # pyright: ignore
     elif action == 'make':
@@ -90,11 +93,10 @@ def cli_main() -> CliResponse:
     elif action == 'destroy-plugin':
         return app_instance.plugin_destroy(args)  # pyright: ignore
     elif action is None:
-        app_parser.print_help()
-        return CliResponse('', f"No action provided (try quickhost {tgt_plugin} -h)", 1)
+        plugin_parsers[tgt_plugin].print_help()
+        return CliResponse('', "No action provided (try quickhost {} -h)".format(tgt_plugin), 1)
     else:
-        app_parser.print_help()
-        return CliResponse('', f"Invalid action: '{action}'", 1)
+        raise Exception("something went wrong")
 
 
 fd1, fd2, rc = cli_main()
