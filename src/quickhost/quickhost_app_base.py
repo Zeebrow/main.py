@@ -17,8 +17,6 @@ import argparse
 from abc import abstractmethod, abstractclassmethod
 import logging
 
-from .constants import APP_CONST as C
-
 logger = logging.getLogger(__name__)
 
 

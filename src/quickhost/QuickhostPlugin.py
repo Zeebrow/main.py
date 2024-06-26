@@ -25,7 +25,6 @@ else:
 
 import typing as t
 
-from collections import defaultdict
 from dataclasses import dataclass
 
 from .quickhost_app_base import AppBase, ParserBase
@@ -58,11 +57,11 @@ def get_plugin(plugin_name: PluginName) -> Plugin:
     :rtype: quickhost.QuickhostPlugin.Plugin
 
     [options.entry_points]
-    quickhost_plugin = 
+    quickhost_plugin =
         <plugin_name>_app = quickhost_<plugin_name>:get_app
         <plugin_name>_parser = quickhost_<plugin_name>:get_parser
-    
     """
+
     qh_plugins = metadata.entry_points(group='quickhost_plugin')
     try:
         v = version(f'quickhost_{plugin_name}')
@@ -87,7 +86,7 @@ def get_plugin(plugin_name: PluginName) -> Plugin:
 def get_plugin_app_getter(plugin_name: PluginName) -> t.Callable[..., AppBase]:
     """
     Get the loader a :class:`quickhost.quickhost_app_base.AppBase` subclass.
-    
+
     :param name: Name of the plugin
     :type name: str
     :raises NoPluginFoundError: The pip package 'quickhost-<plugin_name>' is not installed
@@ -97,14 +96,15 @@ def get_plugin_app_getter(plugin_name: PluginName) -> t.Callable[..., AppBase]:
     try:
         qh_plugins = metadata.entry_points(group='quickhost_plugin')[f'{plugin_name}_app']
         return qh_plugins.load()
-    except:
+    # "do not use bare except" ???
+    except:  # noqa: E722
         raise NoPluginFoundError(f"No plugin found for '{plugin_name}' -- try running pip install quickhost-{plugin_name}")
 
 
 def get_plugin_parser_getter(plugin_name: PluginName) -> t.Callable[..., ParserBase]:
     """
     Get the loader a :class:`quickhost.quickhost_app_base.ParserBase` subclass.
-    
+
     :param name: Name of the plugin
     :type name: str
     :raises NoPluginFoundError: The pip package 'quickhost-<plugin_name>' is not installed
@@ -114,7 +114,7 @@ def get_plugin_parser_getter(plugin_name: PluginName) -> t.Callable[..., ParserB
     try:
         qh_plugins = metadata.entry_points(group='quickhost_plugin')[f'{plugin_name}_parser']
         return qh_plugins.load()
-    except:
+    except:  # noqa: E722
         raise NoPluginFoundError(f"No plugin found for '{plugin_name}' -- try running pip install quickhost-{plugin_name}")
 
 

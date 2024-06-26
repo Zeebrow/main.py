@@ -76,7 +76,7 @@ class QHLogFormatter(logging.Formatter):
             elif record.levelno == logging.CRITICAL:
                 self._style._fmt = QHLogFormatter.ErrorFormatColor
             else:  # make coverage happy
-                self._style._fmt = self._style._fmt 
+                self._style._fmt = self._style._fmt
         else:
             if record.levelno == logging.DEBUG:
                 self._style._fmt = QHLogFormatter.DebugFormat
@@ -89,5 +89,5 @@ class QHLogFormatter(logging.Formatter):
             elif record.levelno == logging.CRITICAL:
                 self._style._fmt = QHLogFormatter.ErrorFormat
             else:  # make coverage happy
-                self._style._fmt = self._style._fmt 
+                self._style._fmt = self._style._fmt
         return super().format(record)

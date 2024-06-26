@@ -1,6 +1,5 @@
 import pytest
-from pytest import MonkeyPatch
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, MagicMock
 import datetime
 import json
 import logging
@@ -22,7 +21,6 @@ def test_get_my_ip():
 def test_get_my_ip_exception():
     """icanhazip.com is always available"""
     m = MagicMock(side_effect=Exception)
-    i = MagicMock()
     with patch('urllib.request.urlopen', m), \
             patch('quickhost.utilities.input', return_value='4.3.2.1'):
         assert get_my_public_ip() == '4.3.2.1/32'
