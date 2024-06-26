@@ -20,13 +20,3 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/zeebrow/quickhost"
 Issues = "https://github.com/zeebrow/quickhost/issues"
-
-[flake8]
-ignore = E501
-exclude =
-  .git,
-  __pycache__,
-  venv*,
-  build,
-  tmp,
-  dist,
