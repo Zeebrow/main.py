@@ -30,44 +30,40 @@ def scrub_datetime(thing):
             thing[i] = scrub_datetime(a)
     elif isinstance(thing, datetime.datetime):
         thing = str(thing)
-    else:
-        return thing
     return thing
 
 
-# @@@ testme
 def get_my_public_ip() -> str:
-    # what could possibly be better?!
     try:
         with urllib.request.urlopen("https://ipv4.icanhazip.com") as r:
             html = r.read()
             return html.decode('utf-8').strip() + "/32"
     except Exception:
-        return input('Could not determine your public ip address (are you connected to the internet?). Enter it here (Ctrl^C to cancel): ')
+        return input('Could not determine your public ip address (are you connected to the internet?). Enter it here (Ctrl^C to cancel): ').strip() + "/32"
 
 
 class QHLogFormatter(logging.Formatter):
     """
     Shamelessly pilfered from
     https://stackoverflow.com/questions/14844970/modifying-logging-message-format-based-on-message-logging-level-in-python3#14859558
+    because making a better one would be too time consuming
     """
     ErrorFormat = '%(levelname)s: %(message)s'
     CriticalFormat = ErrorFormat
     WarningFormat = ErrorFormat
     InfoFormat = ErrorFormat
     DebugFormat = '%(asctime)s : %(name)s : %(funcName)s : %(levelname)s: %(message)s'
-    ErrorFormatColor = '\033[31m%(levelname)s:\033[0m %(message)s'
+    ErrorFormatColor = '\033[31m%(levelname)s:\033[0m %(message)s'  # red
     CriticalFormatColor = ErrorFormatColor
-    WarningFormatColor = '\033[93m%(levelname)s:\033[0m %(message)s'
-    InfoFormatColor = '\033[33m%(levelname)s:\033[0m %(message)s'
-    DebugFormatColor = '\033[94m%(asctime)s : %(name)s : %(funcName)s : %(levelname)s:\033[0m %(message)s'
+    WarningFormatColor = '\033[93m%(levelname)s:\033[0m %(message)s'  # yellow
+    InfoFormatColor = '\033[33m%(levelname)s:\033[0m %(message)s'  # doodoo brown
+    DebugFormatColor = '\033[94m%(asctime)s : %(name)s : %(funcName)s : %(levelname)s:\033[0m %(message)s'  # blue
 
     def __init__(self, color=False):
         self.colored_output = color
         super().__init__(fmt="%(levelno)d: %(msg)s", datefmt=None, style='%')
 
     def format(self, record):
-        # orig_fmt = self._style._fmt
         if self.colored_output:
             if record.levelno == logging.DEBUG:
                 self._style._fmt = QHLogFormatter.DebugFormatColor
@@ -75,8 +71,12 @@ class QHLogFormatter(logging.Formatter):
                 self._style._fmt = QHLogFormatter.InfoFormatColor
             elif record.levelno == logging.WARNING:
                 self._style._fmt = QHLogFormatter.WarningFormatColor
-            elif record.levelno == (logging.ERROR | logging.CRITICAL):
+            elif record.levelno == logging.ERROR:
                 self._style._fmt = QHLogFormatter.ErrorFormatColor
+            elif record.levelno == logging.CRITICAL:
+                self._style._fmt = QHLogFormatter.ErrorFormatColor
+            else:  # make coverage happy
+                self._style._fmt = self._style._fmt 
         else:
             if record.levelno == logging.DEBUG:
                 self._style._fmt = QHLogFormatter.DebugFormat
@@ -84,6 +84,10 @@ class QHLogFormatter(logging.Formatter):
                 self._style._fmt = QHLogFormatter.InfoFormat
             elif record.levelno == logging.WARNING:
                 self._style._fmt = QHLogFormatter.WarningFormat
-            elif record.levelno == (logging.ERROR | logging.CRITICAL):
+            elif record.levelno == logging.ERROR:
                 self._style._fmt = QHLogFormatter.ErrorFormat
+            elif record.levelno == logging.CRITICAL:
+                self._style._fmt = QHLogFormatter.ErrorFormat
+            else:  # make coverage happy
+                self._style._fmt = self._style._fmt 
         return super().format(record)

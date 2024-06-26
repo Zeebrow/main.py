@@ -25,7 +25,9 @@ TOTAL_RUNTIME = 0
 MAX_FILE_SIZE_BYTES = 10_000_000  # ~10MB
 
 
-def store_test_data(resource: str, action: str, response_data: dict):
+def store_test_data(resource: str, action: str, response_data: dict, disable=True):
+    if disable:
+        return
     global TOTAL_RUNTIME
     t_start = perf_counter()
     cwd = Path(os.getcwd())
@@ -54,6 +56,9 @@ def store_test_data(resource: str, action: str, response_data: dict):
     if fp.stat().st_size >= MAX_FILE_SIZE_BYTES:
         logger.debug(f"{fp.stem} Max filesize reached")
     with fp.open("r") as g:
+        print(fp.absolute())
+        print(fp.absolute())
+        print(fp.absolute())
         j = json.load(g)
         j[action].append(response_data)
     with fp.open("w") as h:

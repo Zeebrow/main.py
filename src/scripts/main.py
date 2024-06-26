@@ -16,8 +16,13 @@
 import sys
 import logging
 from typing import Type
+if sys.version_info.minor == 7:
+    from importlib_metadata import version
+else:
+    from importlib.metadata import version
 
-from quickhost import Cli, QHPlugin, Plugin, AppBase, ParserBase, CliResponse
+from quickhost import Cli, AppBase, ParserBase, CliResponse
+from quickhost.QuickhostPlugin import fetch_all_plugins, Plugin
 
 """
 `console-script` entrypoint for 'quickhost'
@@ -27,7 +32,7 @@ logger = logging.getLogger()
 
 
 def cli_main() -> CliResponse:
-    plugins: dict[str, Plugin] = QHPlugin.load_all_plugins()
+    plugins: dict[str, Plugin] = fetch_all_plugins()
     app_parser = Cli.get_main_parser()
 
     plugin_parsers = {}
@@ -42,16 +47,17 @@ def cli_main() -> CliResponse:
 
     Cli.do_logging(args['verbosity'])
     logger.debug("cli args={}".format(args))
+    print(plugins)
 
     if args['version']:
-        if sys.version_info.minor > 7:
-            from importlib.metadata import version
+        try:
             response = ''
             response += "quickhost:\t{}".format(version('quickhost'))
             for _, p in plugins.items():
+                print(p)
                 response += "\n{}:\t{}".format(p.package_name, p.version)
             return CliResponse(response, '', 0)
-        else:
+        except Exception:
             return CliResponse('', 'package info not available for Python {}.{}'.format(sys.version_info.major, sys.version_info.minor), 1)
 
     if dict(plugins) == {}:

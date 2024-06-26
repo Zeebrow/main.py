@@ -1,6 +1,8 @@
 # quickhost
 
-Make a publically accessible host, quickly.
+## 
+
+
 
 ## Usage
 

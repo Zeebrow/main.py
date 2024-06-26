@@ -15,7 +15,6 @@
 
 import argparse
 from abc import abstractmethod, abstractclassmethod
-import configparser
 import logging
 
 from .constants import APP_CONST as C
@@ -23,17 +22,12 @@ from .constants import APP_CONST as C
 logger = logging.getLogger(__name__)
 
 
-class AppConfigFileParser(configparser.ConfigParser):
-    def __init__(self):
-        super().__init__(allow_no_value=True)
-
-
 class ParserBase():
     """
     A plugin's __init__.py must implement a function named get_parser() which return the implementation of this class.
     """
     @abstractmethod
-    def __init__(self, config_file=C.DEFAULT_CONFIG_FILEPATH):
+    def __init__(self):
         ...
 
     @abstractmethod
@@ -70,12 +64,7 @@ class AppBase():
     Using the `app_name` as a key, caching may be implemented.
     """
     @abstractmethod
-    def __init__(self, app_name: str, config_file=C.DEFAULT_CONFIG_FILEPATH):
-        ...
-
-    @abstractmethod
-    def load_default_config(self):
-        """get possible config from file"""
+    def __init__(self, app_name: str):
         ...
 
     @abstractmethod
