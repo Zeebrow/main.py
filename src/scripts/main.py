@@ -47,7 +47,6 @@ def cli_main() -> CliResponse:
 
     Cli.do_logging(args['verbosity'])
     logger.debug("cli args={}".format(args))
-    print(plugins)
 
     if args['version']:
         try:

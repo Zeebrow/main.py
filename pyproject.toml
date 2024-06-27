@@ -20,3 +20,6 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/zeebrow/quickhost"
 Issues = "https://github.com/zeebrow/quickhost/issues"
+
+[project.scripts]
+quickhost = "scripts:main"
